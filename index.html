@@ -1,0 +1,3269 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pivochůzky</title>
+    <style>
+        :root {
+            --bg: #f5f5f7;
+            --header-bg: #ffffff;
+            --surface: #ffffff;
+            --surface-alt: #f8f8fa;
+            --train-bg: #e8e8ed;
+            --train-header: #dedee6;
+            --text: #1d1d1f;
+            --muted: #6e6e73;
+            --border: #e5e5ea;
+            --accent: #d97706;
+            --accent-hover: #b45309;
+            --accent-fg: #ffffff;
+            --tag-bg: #fff7ed;
+            --tag-fg: #c2410c;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --ok-bg: rgba(22, 163, 74, 0.12);
+            --warn-bg: rgba(217, 119, 6, 0.14);
+            --note-bg: #fffbeb;
+            --pill-bg: #f3f4f6;
+            --tab-track: #e5e5ea;
+        }
+
+        body.theme-dark {
+            --bg: #111214;
+            --header-bg: #16181c;
+            --surface: #18191c;
+            --surface-alt: #1e2024;
+            --train-bg: #202226;
+            --train-header: #26292e;
+            --text: #f3f4f6;
+            --muted: #9ca3af;
+            --border: #2a2d32;
+            --accent: #f59e0b;
+            --accent-hover: #fbbf24;
+            --accent-fg: #111214;
+            --tag-bg: rgba(245, 158, 11, 0.16);
+            --tag-fg: #fbbf24;
+            --danger: #f87171;
+            --success: #4ade80;
+            --ok-bg: rgba(74, 222, 128, 0.14);
+            --warn-bg: rgba(245, 158, 11, 0.16);
+            --note-bg: rgba(245, 158, 11, 0.08);
+            --pill-bg: #22252a;
+            --tab-track: #1f2126;
+        }
+
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            padding-bottom: 60px;
+            line-height: 1.45;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        header {
+            background: var(--header-bg);
+            color: var(--text);
+            padding: 12px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border);
+        }
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            max-width: 820px;
+            margin: 0 auto;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            flex: 1;
+        }
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface-alt);
+            color: var(--text);
+            font-size: 1.05rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .icon-btn:hover { border-color: var(--accent); }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.12rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        header .sub {
+            max-width: 820px;
+            margin: 8px auto 0;
+            font-size: 0.8rem;
+            color: var(--muted);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .pill-info {
+            background: var(--pill-bg);
+            border: 1px solid var(--border);
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        header a.route-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 700;
+            border: 1px solid var(--border);
+            background: var(--surface-alt);
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+        }
+        header a.route-link:hover { border-color: var(--accent); }
+
+        /* Side Menu */
+        .drawer-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.52);
+            z-index: 250;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+        .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+        .side-drawer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: min(360px, 90vw);
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            z-index: 260;
+            transform: translateX(-100%);
+            transition: transform 0.22s ease;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .side-drawer.open { transform: translateX(0); }
+        .drawer-head {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .drawer-head h2 { margin: 0; font-size: 1rem; }
+        .drawer-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+
+        .menu-tile {
+            padding: 13px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--surface-alt);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .menu-tile.primary-tile {
+            border-color: var(--accent);
+        }
+        .menu-tile-title {
+            margin: 0;
+            font-size: 0.94rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+        }
+
+        /* Vlastní vyskakovací okno aplikace (Modal) */
+        .app-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.58);
+            z-index: 350;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .app-modal-card {
+            width: 100%;
+            max-width: 430px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+        }
+        .app-modal-title {
+            margin: 0 0 8px;
+            font-size: 1.05rem;
+            font-weight: 800;
+        }
+        .app-modal-text {
+            margin: 0 0 16px;
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+        .app-modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .container { max-width: 820px; margin: 0 auto; padding: 14px 12px; }
+
+        .card {
+            background: var(--surface);
+            border-radius: 14px;
+            padding: 18px 16px;
+            border: 1px solid var(--border);
+            margin-bottom: 14px;
+        }
+        .auth-hero {
+            max-width: 460px;
+            margin: 12px auto;
+            padding: 22px 20px;
+            border-color: var(--accent);
+            border-width: 1.5px;
+        }
+        .card h2, .card h3 { margin: 0 0 8px; letter-spacing: -0.01em; }
+        .muted { color: var(--muted); font-size: 0.88rem; }
+
+        .form-group { display: flex; flex-direction: column; margin-bottom: 10px; }
+        label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            letter-spacing: 0.03em;
+        }
+        input, select {
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.95rem;
+            background: var(--bg);
+            color: var(--text);
+            width: 100%;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--accent); }
+
+        .check-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface-alt);
+            margin-bottom: 8px;
+            cursor: pointer;
+            text-transform: none;
+            color: var(--text);
+            font-size: 0.88rem;
+            font-weight: 600;
+        }
+        .check-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-top: 2px;
+            flex-shrink: 0;
+            accent-color: var(--accent);
+        }
+        .check-hint {
+            display: block;
+            font-size: 0.77rem;
+            font-weight: 400;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .criteria-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        @media (min-width: 560px) {
+            .criteria-grid { grid-template-columns: 1fr 1fr; }
+        }
+        .criteria-grid .check-row { margin-bottom: 0; }
+
+        .btn {
+            background: var(--accent);
+            color: var(--accent-fg);
+            border: none;
+            padding: 11px 15px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.92rem;
+            cursor: pointer;
+            width: 100%;
+        }
+        .btn:hover { background: var(--accent-hover); }
+        .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .btn-sm { padding: 7px 11px; font-size: 0.8rem; width: auto; border-radius: 8px; }
+        .btn-xs { padding: 5px 8px; font-size: 0.76rem; width: auto; border-radius: 7px; }
+        .btn-secondary {
+            background: var(--surface-alt);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { border-color: var(--accent); }
+        .btn-danger {
+            background: var(--danger);
+            color: #ffffff;
+        }
+        .btn-danger-outline {
+            background: transparent;
+            color: var(--danger);
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+        }
+        .btn-danger-outline:hover { border-color: var(--danger); }
+
+        .auth-tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--tab-track);
+            padding: 3px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-bottom: 14px;
+        }
+        .auth-tab {
+            flex: 1;
+            padding: 8px 10px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.86rem;
+            cursor: pointer;
+            background: transparent;
+            color: var(--muted);
+        }
+        .auth-tab.active { background: var(--surface); color: var(--text); }
+
+        /* TILES GRID NA HLAVNÍ STRÁNCE */
+        .section-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .section-header-row h2 { margin: 0; font-size: 1.05rem; }
+
+        .tiles-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        @media (min-width: 600px) {
+            .tiles-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        .walk-tile {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: border-color 0.15s ease;
+        }
+        .walk-tile:hover { border-color: var(--accent); }
+        .tile-cover-wrap {
+            position: relative;
+            width: 100%;
+            height: 132px;
+            background: var(--surface-alt);
+            border-bottom: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .tile-cover-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .tile-cover-fallback {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            background: linear-gradient(135deg, var(--surface-alt), var(--pill-bg));
+            color: var(--muted);
+        }
+        .tile-badges {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            display: flex;
+            justify-content: space-between;
+            gap: 4px;
+            flex-wrap: wrap;
+            pointer-events: none;
+        }
+        .tile-pill {
+            background: rgba(17, 18, 20, 0.78);
+            color: #ffffff;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 999px;
+            backdrop-filter: blur(4px);
+        }
+        .tile-pill.accent {
+            background: var(--accent);
+            color: var(--accent-fg);
+        }
+        .tile-body {
+            padding: 13px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+        .tile-title {
+            font-weight: 800;
+            font-size: 1rem;
+            line-height: 1.25;
+        }
+        .tile-meta {
+            font-size: 0.79rem;
+            color: var(--muted);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+        .tile-actions {
+            margin-top: auto;
+            padding-top: 6px;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .tile-actions .btn { flex: 1; }
+
+        .status-chip {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 999px;
+        }
+        .status-chip.pending { background: var(--warn-bg); color: var(--accent); }
+        .status-chip.approved { background: var(--ok-bg); color: var(--success); }
+
+        .photo-preview-box {
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .photo-preview-img {
+            width: 140px;
+            height: 86px;
+            object-fit: cover;
+            border-radius: 9px;
+            border: 1px solid var(--border);
+        }
+
+        .code-tag {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            background: var(--tag-bg);
+            color: var(--tag-fg);
+            padding: 2px 7px;
+            border-radius: 6px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            word-break: break-all;
+        }
+        .lock-tag {
+            font-size: 0.74rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 6px;
+            background: var(--pill-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .qr-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--surface-alt);
+            margin-top: 12px;
+        }
+        .qr-credentials {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .qr-canvas-wrap {
+            background: #ffffff;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #e5e5ea;
+            display: inline-block;
+            margin: 8px 0;
+        }
+        .share-link-box {
+            width: 100%;
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 14px;
+            background: var(--tab-track);
+            padding: 3px;
+            border-radius: 11px;
+            border: 1px solid var(--border);
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 9px 10px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.88rem;
+            cursor: pointer;
+            background: transparent;
+            color: var(--muted);
+        }
+        .tab-btn.active { background: var(--surface); color: var(--text); }
+
+        .stop-card {
+            background: var(--surface);
+            border-radius: 14px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .stop-card.train-stop { background: var(--train-bg); }
+        .stop-card.train-stop .stop-header { background: var(--train-header); }
+        .stop-card.next-up { border-color: var(--accent); border-width: 1.5px; }
+
+        .stop-header {
+            padding: 13px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background: var(--surface);
+            gap: 10px;
+        }
+        .stop-header:hover { background: var(--surface-alt); }
+        .stop-title { font-weight: 700; font-size: 1rem; }
+        .stop-time { color: var(--danger); font-weight: 700; font-size: 0.84rem; margin-left: 6px; }
+        .stop-next-tag {
+            display: inline-block;
+            background: var(--tag-bg);
+            color: var(--tag-fg);
+            font-size: 0.68rem;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 999px;
+            margin-left: 6px;
+            text-transform: uppercase;
+        }
+        .stop-address { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+        .badge {
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.73rem;
+            font-weight: 700;
+            background: var(--pill-bg);
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .badge.done { background: var(--ok-bg); color: var(--success); }
+
+        .stop-body {
+            padding: 15px;
+            border-top: 1px solid var(--border);
+            display: none;
+            background: var(--surface);
+        }
+        .stop-card.open .stop-body { display: block; }
+
+        .stop-hero-photo {
+            width: 100%;
+            max-height: 150px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stepper { display: flex; align-items: center; gap: 8px; }
+        .step-btn {
+            width: 42px; height: 42px; border-radius: 10px; border: 1px solid var(--border);
+            background: var(--surface-alt); font-size: 1.2rem; font-weight: 700; cursor: pointer; color: var(--text);
+        }
+        .stepper input { text-align: center; font-weight: 700; }
+
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        @media (min-width: 520px) {
+            .stats-summary { grid-template-columns: repeat(4, 1fr); }
+        }
+        .stat-box {
+            background: var(--surface);
+            padding: 12px 8px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .stat-val { font-size: 1.18rem; font-weight: 800; color: var(--accent); }
+        .stat-lbl { font-size: 0.72rem; color: var(--muted); font-weight: 600; margin-top: 2px; }
+
+        .result-card {
+            background: var(--surface);
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border);
+        }
+        .result-card.train-stop { background: var(--train-bg); }
+        .result-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; gap: 8px; }
+        .result-score { font-size: 1.1rem; font-weight: 800; color: var(--accent); }
+        .metrics-row { display: flex; flex-wrap: wrap; gap: 6px; font-size: 0.77rem; margin-bottom: 8px; }
+        .metric-pill { background: var(--pill-bg); border: 1px solid var(--border); padding: 3px 8px; border-radius: 7px; }
+        .notes-box {
+            background: var(--note-bg);
+            border-left: 2px solid var(--accent);
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            margin-top: 6px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        th, td { padding: 7px 5px; border-bottom: 1px solid var(--border); text-align: left; }
+        th { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; }
+
+        .admin-stop-item {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            background: var(--surface-alt);
+            margin-bottom: 8px;
+        }
+        .admin-stop-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .admin-stop-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            flex: 1;
+        }
+        .admin-stop-thumb {
+            width: 56px;
+            height: 44px;
+            object-fit: cover;
+            border-radius: 7px;
+            border: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .admin-stop-controls {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .admin-stop-edit-box {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border);
+        }
+
+        .template-card {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--surface-alt);
+            margin-bottom: 10px;
+        }
+        .template-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .template-stop-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 9px;
+            border-radius: 8px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            margin-top: 6px;
+            font-size: 0.84rem;
+            flex-wrap: wrap;
+        }
+
+        .member-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 10px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface-alt);
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+        }
+
+        .hidden { display: none !important; }
+        #toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--surface); color: var(--text); border: 1px solid var(--accent);
+            padding: 10px 18px; border-radius: 999px; font-size: 0.88rem; font-weight: 600;
+            opacity: 0; transition: 0.2s; pointer-events: none; z-index: 300;
+        }
+        #toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-top">
+        <div class="header-left">
+            <button class="icon-btn" id="menuToggleBtn" onclick="toggleDrawer(true)" aria-label="Otevřít menu">☰</button>
+            <h1 id="topTitle">🍺 Pivochůzky</h1>
+        </div>
+        <button class="icon-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Přepnout světlý / tmavý režim">🌙</button>
+    </div>
+    <div class="sub" id="headerSub">
+        <span class="pill-info">Přihlášení do účtu</span>
+    </div>
+</header>
+
+<!-- BOČNÍ SIDE MENU -->
+<div class="drawer-backdrop" id="drawerBackdrop" onclick="toggleDrawer(false)"></div>
+<aside class="side-drawer" id="sideDrawer" aria-label="Boční menu">
+    <div class="drawer-head">
+        <h2>🍺 Pivochůzky</h2>
+        <button class="icon-btn" onclick="toggleDrawer(false)" aria-label="Zavřít menu">✕</button>
+    </div>
+    <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
+<!-- VLASTNÍ VYSKAKOVACÍ OKNO APLIKACE (PRO ZVEŘEJNĚNÍ POCHODU) -->
+<div class="app-modal-backdrop hidden" id="publicConfirmModal" role="dialog" aria-modal="true" aria-labelledby="publicModalTitle">
+    <div class="app-modal-card">
+        <h3 class="app-modal-title" id="publicModalTitle">🌍 Zveřejnit pochod online?</h3>
+        <p class="app-modal-text">
+            Opravdu chceš tento pochod zveřejnit v online seznamu pro ostatní uživatele? Kdokoliv přihlášený ho uvidí v sekci „Pochody, do kterých se dá přihlásit“.
+        </p>
+        <div class="app-modal-actions">
+            <button class="btn btn-sm btn-secondary" onclick="resolvePublicModal(false)">Zrušit</button>
+            <button class="btn btn-sm" onclick="resolvePublicModal(true)">Ano, zveřejnit</button>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- 1. PŘIHLÁŠENÍ / REGISTRACE DO ÚČTU -->
+    <div id="authScreenView">
+        <div class="card auth-hero">
+            <h2>🍺 Vítej v Pivochůzkách</h2>
+            <p class="muted">Přihlas se pod svým účtem – uvidíš své pochody, organizované trasy i veřejné akce k přihlášení.</p>
+
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="authTabLogin" onclick="switchAuthMode('login')">Přihlásit se</button>
+                <button class="auth-tab" id="authTabRegister" onclick="switchAuthMode('register')">Registrovat účet</button>
+            </div>
+
+            <div class="form-group">
+                <label>Uživatelské jméno *</label>
+                <input type="text" id="authUsername" placeholder="např. kuba" onkeydown="handleAuthKeydown(event)">
+            </div>
+            <div class="form-group">
+                <label>Heslo k účtu *</label>
+                <input type="password" id="authPassword" placeholder="Zadej heslo" onkeydown="handleAuthKeydown(event)">
+            </div>
+            <button class="btn" id="authSubmitBtn" onclick="submitAccountAuth()">Přihlásit se</button>
+        </div>
+    </div>
+
+    <!-- 2. HLAVNÍ STRÁNKA PO PŘIHLÁŠENÍ: TŘI SEKCE DLAŽDIC -->
+    <div id="homeTilesView" class="hidden">
+        <div style="margin: 8px 0 12px;">
+            <div class="section-header-row">
+                <h2>🎟️ Pochody, na které jsem přihlášen</h2>
+            </div>
+            <div id="tilesJoinedGrid" class="tiles-grid"></div>
+        </div>
+
+        <div style="margin: 22px 0 12px;">
+            <div class="section-header-row">
+                <h2>🛠️ Mnou organizované pochody</h2>
+            </div>
+            <div id="tilesOrganizedGrid" class="tiles-grid"></div>
+        </div>
+
+        <div style="margin: 22px 0 12px;">
+            <div class="section-header-row">
+                <h2>🌍 Pochody, do kterých se dá přihlásit</h2>
+            </div>
+            <p class="muted" style="margin-top:-4px; font-size:0.82rem;">Pochody, které jejich organizátor zveřejnil pro ostatní účastníky.</p>
+            <div id="tilesPublicGrid" class="tiles-grid"></div>
+        </div>
+    </div>
+
+    <!-- 3. SPRÁVA ÚČTU + VLASTNÍ TEMPLATY HOSPOD -->
+    <div id="accountManageView" class="hidden">
+        <div style="margin-bottom:10px;">
+            <button class="btn btn-sm btn-secondary" onclick="showHomeTiles()">← Zpět na přehled pochodů</button>
+        </div>
+
+        <div class="card">
+            <h2>👤 Správa účtu</h2>
+            <p class="muted">Uprav si své uživatelské jméno nebo změň heslo účtu.</p>
+
+            <div class="form-group">
+                <label>Uživatelské jméno *</label>
+                <input type="text" id="accEditUsername" placeholder="Nové uživatelské jméno">
+            </div>
+            <div class="form-group">
+                <label>Nové heslo (nech prázdné pro zachování současného)</label>
+                <input type="password" id="accEditPassword" placeholder="Zadej nové heslo (min. 3 znaky)">
+            </div>
+            <div class="form-group">
+                <label>Potvrzení nového hesla</label>
+                <input type="password" id="accEditPasswordConfirm" placeholder="Zopakuj nové heslo">
+            </div>
+
+            <button class="btn" onclick="saveAccountChanges()">Uložit změny účtu</button>
+            <button class="btn-danger-outline" onclick="logoutAccount()">Odhlásit se z účtu</button>
+        </div>
+
+        <div class="card">
+            <h3>🍻 Moje templaty hospod (pořadí zastávek)</h3>
+            <p class="muted" style="margin-top:0; font-size:0.84rem;">
+                Vytvoř si vlastní šablonu se seznamem a pořadím hospod. Při zakládání pochodu si ji pak jen zvolíš.
+            </p>
+
+            <div class="form-group">
+                <label>Název nového templatu *</label>
+                <input type="text" id="newTplName" placeholder="např. Trasa Karlín – Holešovice">
+            </div>
+            <button class="btn btn-sm" onclick="createUserTemplate()">+ Vytvořit template</button>
+
+            <div style="margin-top:16px;" id="userTemplatesList"></div>
+        </div>
+    </div>
+
+    <!-- 4. TVORBA NOVÉHO POCHODU -->
+    <div id="createWalkView" class="hidden">
+        <div style="margin-bottom:10px;">
+            <button class="btn btn-sm btn-secondary" onclick="showHomeTiles()">← Zpět na přehled pochodů</button>
+        </div>
+
+        <div class="card">
+            <h2>➕ Vytvořit nový pochod</h2>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Název pochodu *</label>
+                    <input type="text" id="newWalkTitle" placeholder="např. Večerní pochod">
+                </div>
+                <div class="form-group">
+                    <label>Datum konání pochodu</label>
+                    <input type="date" id="newWalkDate">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Výběr templatu hospod</label>
+                <select id="newWalkTemplate"></select>
+            </div>
+
+            <div class="form-group">
+                <label>Způsob bodování</label>
+                <select id="newWalkScoringMode">
+                    <option value="int_10">10b. (celá čísla 1–10)</option>
+                    <option value="int_5">5b. (celá čísla 1–5)</option>
+                    <option value="half_10">10b. po půl bodu (0,5 – 10,0)</option>
+                    <option value="half_5">5b. po půl bodu (0,5 – 5,0)</option>
+                    <option value="dec_10">Desetinné hodnocení do 10 (např. 8,4)</option>
+                    <option value="dec_5">Desetinné hodnocení do 5 (např. 3,7)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>URL úvodní fotky pochodu (volitelné)</label>
+                <input type="url" id="newWalkPhotoUrl" placeholder="https://example.com/fotka.jpg" oninput="previewPhotoUrl(this.value, 'newPhotoPreviewWrap', 'newPhotoPreviewImg')">
+                <div class="photo-preview-box" id="newPhotoPreviewWrap" style="display:none;">
+                    <img id="newPhotoPreviewImg" class="photo-preview-img" alt="Náhled fotky">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Odkaz na trasu v mapě (volitelné)</label>
+                <input type="url" id="newWalkRoute" placeholder="https://mapy.cz/...">
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Heslo pochodu (volitelné)</label>
+                    <input type="text" id="newWalkPassword" placeholder="Prázdné = bez hesla">
+                </div>
+                <div class="form-group">
+                    <label>Max. počet účastníků (volitelné)</label>
+                    <input type="number" id="newWalkMaxPeople" min="1" placeholder="Neomezeno">
+                </div>
+            </div>
+
+            <h3 style="margin-top:14px;">📋 Co všechno se bude v zastávkách hodnotit</h3>
+            <p class="muted" style="margin-top:0; font-size:0.82rem;">Vyber položky, které budou mít účastníci k dispozici při vyplňování zastávky.</p>
+            <div class="criteria-grid" id="newCriteriaContainer"></div>
+
+            <label class="check-row">
+                <input type="checkbox" id="newWalkPublicCheck" onchange="handlePublicCheckboxToggle(this)">
+                <span>
+                    Zveřejnit pochod online v seznamu pro ostatní
+                    <span class="check-hint">Pochod se zobrazí všem přihlášeným uživatelům v sekci „Pochody, do kterých se dá přihlásit“.</span>
+                </span>
+            </label>
+
+            <label class="check-row">
+                <input type="checkbox" id="newWalkApprovalCheck">
+                <span>
+                    Vyžadovat schválení přihlášky organizátorem
+                    <span class="check-hint">Noví zájemci budou nejprve čekat na tvoje potvrzení v administraci pochodu.</span>
+                </span>
+            </label>
+
+            <button class="btn" onclick="createWalk()">Vytvořit pochod a vygenerovat náhodný kód</button>
+
+            <div id="createdWalkBox" class="qr-box hidden">
+                <div class="qr-credentials">
+                    <span>Kód pochodu: <span class="code-tag" id="createdCodeText"></span></span>
+                    <span class="lock-tag" id="createdPassText"></span>
+                </div>
+                <div class="qr-canvas-wrap">
+                    <canvas id="qrCanvas" width="170" height="170"></canvas>
+                </div>
+                <div class="share-link-box">
+                    <input type="text" id="createdShareUrl" readonly>
+                    <button class="btn btn-sm btn-secondary" onclick="copyUrlInput('createdShareUrl')">Kopírovat</button>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:10px; width:100%;">
+                    <button class="btn btn-sm btn-secondary" style="flex:1;" id="openCreatedWalkBtn">Otevřít pochod</button>
+                    <button class="btn btn-sm" style="flex:1;" id="openCreatedAdminBtn">Správa pochodu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. ÚČASTNICKÝ POHLED POCHODU -->
+    <div id="participantWalkView" class="hidden">
+        <div style="margin-bottom:10px;">
+            <button class="btn btn-sm btn-secondary" onclick="showHomeTiles()">← Zpět na přehled pochodů</button>
+        </div>
+        <div class="tabs">
+            <button class="tab-btn active" id="pTabMy" onclick="switchParticipantTab('my')">✍️ Moje hodnocení</button>
+            <button class="tab-btn" id="pTabAll" onclick="switchParticipantTab('all')">🏆 Výsledky</button>
+        </div>
+        <div id="pMyRatingsTab"></div>
+        <div id="pAllResultsTab" class="hidden">
+            <div style="display:flex; justify-content:flex-end; gap:6px; margin-bottom:10px; flex-wrap:wrap;">
+                <button class="btn btn-sm" onclick="exportSingleWalkExcelTable()">📊 Export do Excel tabulky (.xls)</button>
+            </div>
+            <div class="stats-summary" id="pGlobalStats"></div>
+            <h3 style="margin: 12px 0 6px; font-size: 0.96rem;">Pořadí zastávek</h3>
+            <div id="pLeaderboardList"></div>
+            <h3 style="margin: 18px 0 6px; font-size: 0.96rem;">🍻 Pivaři a útrata</h3>
+            <div class="result-card" id="pDrinkersList"></div>
+        </div>
+    </div>
+
+    <!-- 6. ADMIN / SPRÁVA POCHODU POUZE PRO ZAKLADATELE -->
+    <div id="founderWalkAdminView" class="hidden">
+        <div style="margin-bottom:10px;">
+            <button class="btn btn-sm btn-secondary" onclick="showHomeTiles()">← Zpět na přehled pochodů</button>
+        </div>
+
+        <div class="card">
+            <h3>📤 Kód, heslo a QR pochodu</h3>
+            <div class="qr-box" style="margin-top:6px;">
+                <div class="qr-credentials">
+                    <span>Kód: <span class="code-tag" id="adminWalkCode"></span></span>
+                    <span class="lock-tag" id="adminWalkPassTag"></span>
+                </div>
+                <div class="qr-canvas-wrap">
+                    <canvas id="adminQrCanvas" width="170" height="170"></canvas>
+                </div>
+                <div class="share-link-box">
+                    <input type="text" id="adminShareUrl" readonly>
+                    <button class="btn btn-sm btn-secondary" onclick="copyUrlInput('adminShareUrl')">Kopírovat</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>👥 Účastníci pochodu</h3>
+            <div class="muted" id="adminCapacitySummary" style="margin-bottom:8px;"></div>
+            <div id="adminMembersList"></div>
+        </div>
+
+        <div class="card">
+            <h3>✏️ Nastavení pochodu</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Název pochodu</label>
+                    <input type="text" id="editWalkTitle">
+                </div>
+                <div class="form-group">
+                    <label>Datum konání pochodu</label>
+                    <input type="date" id="editWalkDate">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Způsob bodování</label>
+                <select id="editWalkScoringMode">
+                    <option value="int_10">10b. (celá čísla 1–10)</option>
+                    <option value="int_5">5b. (celá čísla 1–5)</option>
+                    <option value="half_10">10b. po půl bodu (0,5 – 10,0)</option>
+                    <option value="half_5">5b. po půl bodu (0,5 – 5,0)</option>
+                    <option value="dec_10">Desetinné hodnocení do 10 (např. 8,4)</option>
+                    <option value="dec_5">Desetinné hodnocení do 5 (např. 3,7)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>URL úvodní fotky pochodu</label>
+                <input type="url" id="editWalkPhotoUrl" placeholder="https://..." oninput="previewPhotoUrl(this.value, 'editPhotoPreviewWrap', 'editPhotoPreviewImg')">
+                <div class="photo-preview-box" id="editPhotoPreviewWrap" style="display:none;">
+                    <img id="editPhotoPreviewImg" class="photo-preview-img" alt="Náhled">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Odkaz na trasu v mapě (URL)</label>
+                <input type="url" id="editWalkRoute">
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Heslo pochodu (prázdné = bez hesla)</label>
+                    <input type="text" id="editWalkPassword" placeholder="Bez hesla">
+                </div>
+                <div class="form-group">
+                    <label>Max. počet účastníků (prázdné = neomezeno)</label>
+                    <input type="number" id="editWalkMaxPeople" min="1" placeholder="Neomezeno">
+                </div>
+            </div>
+
+            <h3 style="margin-top:12px;">📋 Hodnocené položky u zastávek</h3>
+            <div class="criteria-grid" id="editCriteriaContainer"></div>
+
+            <label class="check-row">
+                <input type="checkbox" id="editWalkPublicCheck" onchange="handlePublicCheckboxToggle(this)">
+                <span>Veřejný pochod v online katalogu pro ostatní uživatele</span>
+            </label>
+            <label class="check-row">
+                <input type="checkbox" id="editWalkApprovalCheck">
+                <span>Vyžadovat schválení přihlášky organizátorem</span>
+            </label>
+            <button class="btn btn-sm" onclick="saveWalkMeta()">Uložit nastavení pochodu</button>
+        </div>
+
+        <div class="card">
+            <h3>🍺 Správa zastávek / hospod (úpravy, fotka & pořadí šipkami)</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Číslo</label>
+                    <input type="text" id="addStopNum" placeholder="např. 3.">
+                </div>
+                <div class="form-group">
+                    <label>Název hospody / zastávky *</label>
+                    <input type="text" id="addStopName" placeholder="např. Pivnice U Kámen">
+                </div>
+                <div class="form-group">
+                    <label>Čas</label>
+                    <input type="text" id="addStopTime" placeholder="např. 16:00">
+                </div>
+                <div class="form-group">
+                    <label>Výchozí cena piva (Kč)</label>
+                    <input type="number" id="addStopPrice" placeholder="např. 58">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Adresa / popis</label>
+                <input type="text" id="addStopAddr" placeholder="např. Sokolovská 45, Praha 8">
+            </div>
+            <div class="form-group">
+                <label>URL fotky hospody / zastávky (volitelné)</label>
+                <input type="url" id="addStopPhotoUrl" placeholder="https://example.com/hospoda.jpg" oninput="previewPhotoUrl(this.value, 'addStopPhotoPreviewWrap', 'addStopPhotoPreviewImg')">
+                <div class="photo-preview-box" id="addStopPhotoPreviewWrap" style="display:none;">
+                    <img id="addStopPhotoPreviewImg" class="photo-preview-img" alt="Náhled hospody">
+                </div>
+            </div>
+            <label style="display:flex; align-items:center; gap:8px; text-transform:none; margin-bottom:10px; color:var(--text);">
+                <input type="checkbox" id="addStopIsTrain" style="width:auto;"> Cesta vlakem / přesun (ne hospoda)
+            </label>
+            <button class="btn btn-sm" onclick="addStopToAdminWalk()">+ Přidat zastávku</button>
+
+            <div style="margin-top:16px;" id="adminStopsList"></div>
+        </div>
+
+        <div class="card">
+            <h3>🗄️ Zálohy a čištění dat pochodu</h3>
+            <p class="muted" style="margin-top:0;">Záloha ve formátu JSON je dostupná zde ve správě pochodu. Pozor na akce čištění dat.</p>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+                <button class="btn btn-sm btn-secondary" onclick="exportSingleWalkJson()">💾 Stáhnout zálohu (JSON)</button>
+                <button class="btn btn-sm btn-secondary" onclick="document.getElementById('restoreWalkJsonInput').click()">📂 Obnovit ze zálohy (JSON)</button>
+                <input type="file" id="restoreWalkJsonInput" accept="application/json,.json" class="hidden" onchange="restoreSingleWalkFromJson(event)">
+            </div>
+
+            <div style="border-top:1px solid var(--border); padding-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-sm btn-secondary" onclick="clearAllWalkRatings()">🧹 Vymazat všechna hodnocení účastníků</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteCurrentWalk()">🗑️ Smazat celý pochod</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div id="toast">Uloženo</div>
+
+<script>
+    const DB_URL = "https://pivochuzky-default-rtdb.europe-west1.firebasedatabase.app";
+    const SESSION_KEY = "pivochuzky_session_v1";
+    const THEME_KEY = "pivochuzky_theme_v1";
+
+    const RATING_CRITERIA = [
+        { key: "pivo", label: "🍺 Pivo" },
+        { key: "obsluha", label: "🙋 Obsluha" },
+        { key: "prostredi", label: "🏠 Prostředí" },
+        { key: "dojem", label: "⭐ Dojem" },
+        { key: "wc", label: "🚽 WC" },
+        { key: "wcVisits", label: "🚻 Počet návštěv WC" },
+        { key: "tapster", label: "🧔 Jméno výčepáka" },
+        { key: "food", label: "🍽️ Co jsem si dal k jídlu" },
+        { key: "cena", label: "💰 Cena piva (Kč)" },
+        { key: "pocet", label: "🍻 Počet piv" },
+        { key: "note", label: "💬 Poznámka / hláška" }
+    ];
+
+    const SCORING_MODES = {
+        int_10:  { max: 10, type: "select_int", step: 1, label: "10b." },
+        int_5:   { max: 5,  type: "select_int", step: 1, label: "5b." },
+        half_10: { max: 10, type: "select_half", step: 0.5, label: "10b. po 0,5" },
+        half_5:  { max: 5,  type: "select_half", step: 0.5, label: "5b. po 0,5" },
+        dec_10:  { max: 10, type: "decimal", step: 0.1, label: "Desetinné do 10" },
+        dec_5:   { max: 5,  type: "decimal", step: 0.1, label: "Desetinné do 5" }
+    };
+
+    function getScoringMeta(mode) {
+        return SCORING_MODES[mode] || SCORING_MODES.int_10;
+    }
+
+    function formatScoreValue(val, mode) {
+        if (val === null || val === undefined || val === "" || Number.isNaN(Number(val))) return null;
+        const n = Number(val);
+        const meta = getScoringMeta(mode);
+        if (meta.type === "select_int") return String(Math.round(n));
+        return n.toFixed(1).replace(".", ",");
+    }
+
+    function getDefaultCriteriaConfig() {
+        return {
+            pivo: true,
+            obsluha: true,
+            prostredi: true,
+            dojem: true,
+            wc: true,
+            wcVisits: true,
+            tapster: true,
+            food: true,
+            cena: true,
+            pocet: true,
+            note: true
+        };
+    }
+
+    function normalizeCriteria(cfg) {
+        const base = getDefaultCriteriaConfig();
+        if (!cfg || typeof cfg !== "object") return base;
+        const out = {};
+        RATING_CRITERIA.forEach(c => {
+            out[c.key] = cfg[c.key] !== undefined ? Boolean(cfg[c.key]) : base[c.key];
+        });
+        return out;
+    }
+
+    let state = {
+        accounts: {},
+        loggedInAccount: null,
+        walks: {},
+        activeParticipantWalk: null
+    };
+
+    let authMode = "login";
+    let adminWalkCode = null;
+    let editingStopId = null;
+    let pendingPublicCheckbox = null;
+    let currentViewName = "auth";
+    let isSyncing = false;
+
+    /* --- FIREBASE REALTIME DB HELPERS --- */
+    async function fbGet(path) {
+        const clean = path.replace(/^\/+|\/+$/g, "");
+        const res = await fetch(`${DB_URL}/${clean}.json`, { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+    }
+
+    async function fbPut(path, data) {
+        const clean = path.replace(/^\/+|\/+$/g, "");
+        const res = await fetch(`${DB_URL}/${clean}.json`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+    }
+
+    async function fbDelete(path) {
+        const clean = path.replace(/^\/+|\/+$/g, "");
+        const res = await fetch(`${DB_URL}/${clean}.json`, { method: "DELETE" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    }
+
+    function normalizeWalkObj(w) {
+        if (!w || typeof w !== "object") return null;
+        return {
+            ...w,
+            stops: Array.isArray(w.stops) ? w.stops : (w.stops && typeof w.stops === "object" ? Object.values(w.stops) : []),
+            users: w.users && typeof w.users === "object" ? w.users : {},
+            criteria: normalizeCriteria(w.criteria)
+        };
+    }
+
+    function normalizeAccountObj(acc) {
+        if (!acc || typeof acc !== "object") return null;
+        const tpls = Array.isArray(acc.templates)
+            ? acc.templates
+            : (acc.templates && typeof acc.templates === "object" ? Object.values(acc.templates) : []);
+        return {
+            ...acc,
+            templates: tpls.map(t => ({
+                ...t,
+                stops: Array.isArray(t.stops) ? t.stops : (t.stops && typeof t.stops === "object" ? Object.values(t.stops) : [])
+            }))
+        };
+    }
+
+    async function pullAllFromFirebase(silent = false) {
+        if (isSyncing) return;
+        isSyncing = true;
+        try {
+            const [accountsRaw, walksRaw] = await Promise.all([
+                fbGet("accounts"),
+                fbGet("walks")
+            ]);
+
+            const nextAccounts = {};
+            if (accountsRaw && typeof accountsRaw === "object") {
+                Object.entries(accountsRaw).forEach(([k, v]) => {
+                    const norm = normalizeAccountObj(v);
+                    if (norm) nextAccounts[k] = norm;
+                });
+            }
+
+            const nextWalks = {};
+            if (walksRaw && typeof walksRaw === "object") {
+                Object.entries(walksRaw).forEach(([k, v]) => {
+                    const norm = normalizeWalkObj(v);
+                    if (norm) nextWalks[k] = norm;
+                });
+            }
+
+            state.accounts = nextAccounts;
+            state.walks = nextWalks;
+
+            if (state.loggedInAccount && !state.accounts[state.loggedInAccount]) {
+                state.loggedInAccount = null;
+                localStorage.removeItem(SESSION_KEY);
+            }
+        } catch (err) {
+            if (!silent) showToast("Chyba spojení s databází Firebase.");
+        } finally {
+            isSyncing = false;
+        }
+    }
+
+    async function syncAccountToFirebase(accKey) {
+        const acc = state.accounts[accKey];
+        if (!acc) return;
+        try {
+            await fbPut(`accounts/${accKey}`, normalizeAccountObj(acc));
+        } catch {
+            showToast("Nepodařilo se uložit účet do Firebase.");
+        }
+    }
+
+    async function syncWalkToFirebase(code) {
+        const w = state.walks[code];
+        if (!w) return;
+        try {
+            await fbPut(`walks/${code}`, normalizeWalkObj(w));
+        } catch {
+            showToast("Nepodařilo se uložit pochod do Firebase.");
+        }
+    }
+
+    async function deleteWalkFromFirebase(code) {
+        try {
+            await fbDelete(`walks/${code}`);
+        } catch {
+            showToast("Nepodařilo se smazat pochod z Firebase.");
+        }
+    }
+
+    async function moveAccountKeyInFirebase(oldKey, newKey, accountData) {
+        await fbPut(`accounts/${newKey}`, normalizeAccountObj(accountData));
+        await fbDelete(`accounts/${oldKey}`);
+    }
+
+    function refreshActiveView() {
+        if (!state.loggedInAccount || !state.accounts[state.loggedInAccount]) {
+            if (currentViewName !== "auth") showAuthScreen();
+            return;
+        }
+        updateHeaderSub();
+        if (currentViewName === "home") {
+            renderHomeTilesContent();
+        } else if (currentViewName === "account") {
+            renderUserTemplatesList();
+        } else if (currentViewName === "create") {
+            populateCreateTemplateSelect();
+        } else if (currentViewName === "participant" && state.activeParticipantWalk) {
+            if (!state.walks[state.activeParticipantWalk] || !getMemberRecord(state.walks[state.activeParticipantWalk], state.loggedInAccount)) {
+                showHomeTiles();
+                return;
+            }
+            const allTabActive = document.getElementById("pTabAll").classList.contains("active");
+            if (allTabActive) renderParticipantResults();
+            else renderParticipantRatings();
+        } else if (currentViewName === "admin" && adminWalkCode) {
+            if (!state.walks[adminWalkCode] || state.walks[adminWalkCode].ownerKey !== state.loggedInAccount) {
+                showHomeTiles();
+                return;
+            }
+            renderAdminMembers(state.walks[adminWalkCode]);
+            renderAdminStopsList(state.walks[adminWalkCode]);
+        }
+    }
+
+    /* --- TEMPLATY ÚČTU --- */
+    function getAccountTemplates(accKey) {
+        const acc = state.accounts[accKey];
+        if (!acc) return [];
+        if (!Array.isArray(acc.templates)) acc.templates = [];
+        return acc.templates;
+    }
+
+    function getStopsFromUserTemplate(accKey, templateId) {
+        if (!templateId || templateId === "empty") return [];
+        const tpl = getAccountTemplates(accKey).find(t => t.id === templateId);
+        if (!tpl || !Array.isArray(tpl.stops)) return [];
+        return tpl.stops.map((s, idx) => ({
+            id: "st_" + Date.now() + "_" + idx + "_" + Math.random().toString(36).slice(2, 6),
+            num: s.num || `${idx + 1}.`,
+            name: s.name || `Zastávka ${idx + 1}`,
+            time: s.time || "",
+            addr: s.addr || "",
+            beerPrice: s.beerPrice !== null && s.beerPrice !== undefined && s.beerPrice !== "" ? Number(s.beerPrice) : null,
+            photoUrl: s.photoUrl || "",
+            isTrain: Boolean(s.isTrain)
+        }));
+    }
+
+    /* --- MOTIV & MENU --- */
+    function applyTheme(mode) {
+        const isDark = mode === "dark";
+        document.body.classList.toggle("theme-dark", isDark);
+        const btn = document.getElementById("themeToggleBtn");
+        if (btn) btn.textContent = isDark ? "☀️" : "🌙";
+    }
+
+    function toggleTheme() {
+        const next = document.body.classList.contains("theme-dark") ? "light" : "dark";
+        localStorage.setItem(THEME_KEY, next);
+        applyTheme(next);
+    }
+
+    function toggleDrawer(open) {
+        document.getElementById("sideDrawer").classList.toggle("open", open);
+        document.getElementById("drawerBackdrop").classList.toggle("open", open);
+        if (open) renderDrawer();
+    }
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+            if (!document.getElementById("publicConfirmModal").classList.contains("hidden")) {
+                resolvePublicModal(false);
+                return;
+            }
+            toggleDrawer(false);
+        }
+    });
+
+    function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 2400);
+    }
+
+    function sanitizeId(name) {
+        return name.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "_") || "uzivatel";
+    }
+
+    function generateWalkCode() {
+        const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        const bytes = new Uint8Array(10);
+        crypto.getRandomValues(bytes);
+        let token = "";
+        for (let i = 0; i < bytes.length; i++) {
+            token += alphabet[bytes[i] % alphabet.length];
+        }
+        const code = `POCH-${token}`;
+        return state.walks[code] ? generateWalkCode() : code;
+    }
+
+    function buildWalkShareUrl(code) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("pochod", code);
+        return url.toString();
+    }
+
+    function formatCzDate(isoDate) {
+        if (!isoDate) return "";
+        const parts = String(isoDate).split("-");
+        if (parts.length !== 3) return isoDate;
+        return `${Number(parts[2])}.${Number(parts[1])}.${parts[0]}`;
+    }
+
+    function previewPhotoUrl(url, wrapId, imgId) {
+        const clean = (url || "").trim();
+        const wrap = document.getElementById(wrapId);
+        const img = document.getElementById(imgId);
+        if (!wrap || !img) return;
+        if (clean) {
+            img.src = clean;
+            wrap.style.display = "flex";
+        } else {
+            wrap.style.display = "none";
+        }
+    }
+
+    function handlePublicCheckboxToggle(checkbox) {
+        if (checkbox.checked) {
+            pendingPublicCheckbox = checkbox;
+            checkbox.checked = false;
+            document.getElementById("publicConfirmModal").classList.remove("hidden");
+        }
+    }
+
+    function resolvePublicModal(confirmed) {
+        document.getElementById("publicConfirmModal").classList.add("hidden");
+        if (pendingPublicCheckbox) {
+            pendingPublicCheckbox.checked = Boolean(confirmed);
+            pendingPublicCheckbox = null;
+        }
+    }
+
+    function renderCriteriaCheckboxes(containerId, idPrefix, config) {
+        const norm = normalizeCriteria(config);
+        const container = document.getElementById(containerId);
+        container.innerHTML = RATING_CRITERIA.map(c => `
+            <label class="check-row">
+                <input type="checkbox" id="${idPrefix}_${c.key}" ${norm[c.key] ? "checked" : ""}>
+                <span>${c.label}</span>
+            </label>
+        `).join("");
+    }
+
+    function readCriteriaFromDom(idPrefix) {
+        const cfg = {};
+        RATING_CRITERIA.forEach(c => {
+            const el = document.getElementById(`${idPrefix}_${c.key}`);
+            cfg[c.key] = el ? Boolean(el.checked) : true;
+        });
+        return cfg;
+    }
+
+    window.onload = async () => {
+        applyTheme(localStorage.getItem(THEME_KEY) || "light");
+        state.loggedInAccount = localStorage.getItem(SESSION_KEY) || null;
+
+        await pullAllFromFirebase(false);
+
+        const params = new URLSearchParams(window.location.search);
+        const codeFromUrl = (params.get("pochod") || "").trim().toUpperCase();
+
+        if (state.loggedInAccount && state.accounts[state.loggedInAccount]) {
+            showHomeTiles();
+            if (codeFromUrl) {
+                toggleDrawer(true);
+                const inp = document.getElementById("drawerJoinCode");
+                if (inp) inp.value = codeFromUrl;
+            }
+        } else {
+            showAuthScreen();
+        }
+
+        setInterval(async () => {
+            if (document.hidden) return;
+            await pullAllFromFirebase(true);
+            refreshActiveView();
+        }, 6000);
+    };
+
+    function updateHeaderSub() {
+        const sub = document.getElementById("headerSub");
+        if (!state.loggedInAccount || !state.accounts[state.loggedInAccount]) {
+            sub.innerHTML = `<span class="pill-info">Přihlášení do účtu</span>`;
+            return;
+        }
+        const acc = state.accounts[state.loggedInAccount];
+        if (state.activeParticipantWalk && state.walks[state.activeParticipantWalk]) {
+            const w = state.walks[state.activeParticipantWalk];
+            const sm = getScoringMeta(w.scoringMode);
+            const dateHtml = w.eventDate ? `<span class="pill-info">📅 ${escapeHtml(formatCzDate(w.eventDate))}</span>` : "";
+            const routeHtml = w.routeUrl && /^https?:\/\//i.test(w.routeUrl)
+                ? `<a class="route-link" href="${escapeAttr(w.routeUrl)}" target="_blank" rel="noopener">🗺️ Trasa</a>`
+                : "";
+            sub.innerHTML = `
+                <span class="pill-info">Účet: <b>${escapeHtml(acc.username)}</b></span>
+                <span class="pill-info">Pochod: <b>${escapeHtml(w.code)}</b></span>
+                <span class="pill-info">🎯 ${escapeHtml(sm.label)}</span>
+                ${dateHtml}
+                ${routeHtml}
+            `;
+        } else {
+            sub.innerHTML = `<span class="pill-info">Přihlášen jako: <b>${escapeHtml(acc.username)}</b></span>`;
+        }
+    }
+
+    function renderDrawer() {
+        const body = document.getElementById("drawerBody");
+        const loggedIn = Boolean(state.loggedInAccount && state.accounts[state.loggedInAccount]);
+
+        if (!loggedIn) {
+            body.innerHTML = `
+                <div class="menu-tile primary-tile">
+                    <div class="menu-tile-title"><span>👤 Detail účtu</span></div>
+                    <p class="muted" style="margin:0; font-size:0.8rem;">Nejsi přihlášen. Přihlas se ke svému účtu.</p>
+                    <button class="btn btn-sm" style="width:100%;" onclick="toggleDrawer(false); showAuthScreen();">Přihlásit se / Registrovat</button>
+                </div>
+            `;
+            return;
+        }
+
+        const acc = state.accounts[state.loggedInAccount];
+        body.innerHTML = `
+            <div class="menu-tile primary-tile">
+                <div class="menu-tile-title">
+                    <span>👤 Detail účtu</span>
+                    <span class="code-tag">${escapeHtml(acc.username)}</span>
+                </div>
+                <div class="muted" style="font-size:0.78rem;">Správa účtu, vlastních templatů hospod nebo odhlášení.</div>
+                <div style="display:flex; gap:6px;">
+                    <button class="btn btn-sm btn-secondary" style="flex:1;" onclick="toggleDrawer(false); showAccountManage();">⚙️ Správa účtu</button>
+                    <button class="btn btn-sm btn-secondary" style="flex:1;" onclick="logoutAccount()">Odhlásit</button>
+                </div>
+            </div>
+
+            <div class="menu-tile">
+                <div class="menu-tile-title"><span>🏠 Přehled pochodů</span></div>
+                <div class="muted" style="font-size:0.78rem;">Zpět na stránku se všemi tvými a veřejnými pochody.</div>
+                <button class="btn btn-sm btn-secondary" style="width:100%;" onclick="toggleDrawer(false); showHomeTiles();">Otevřít přehled pochodů</button>
+            </div>
+
+            <div class="menu-tile">
+                <div class="menu-tile-title"><span>🔑 Přihlásit se na pochod</span></div>
+                <div class="form-group" style="margin-bottom:6px;">
+                    <label>Kód pochodu *</label>
+                    <input type="text" id="drawerJoinCode" placeholder="např. POCH-4B8N2R6T9Y" style="text-transform: uppercase;">
+                </div>
+                <div class="form-group" style="margin-bottom:6px;">
+                    <label>Heslo pochodu (je-li soukromý)</label>
+                    <input type="text" id="drawerJoinPass" placeholder="Prázdné = bez hesla">
+                </div>
+                <button class="btn btn-sm" style="width:100%;" onclick="joinWalkFromDrawer()">Přihlásit se na pochod</button>
+            </div>
+
+            <div class="menu-tile">
+                <div class="menu-tile-title"><span>➕ Vytvořit pochod</span></div>
+                <div class="muted" style="font-size:0.78rem;">Založ nový pochod ze svého templatu nebo prázdný, s volbou bodování.</div>
+                <button class="btn btn-sm" style="width:100%;" onclick="toggleDrawer(false); showCreateWalkScreen();">+ Vytvořit pochod</button>
+            </div>
+        `;
+    }
+
+    function hideAllScreens() {
+        document.getElementById("authScreenView").classList.add("hidden");
+        document.getElementById("homeTilesView").classList.add("hidden");
+        document.getElementById("accountManageView").classList.add("hidden");
+        document.getElementById("createWalkView").classList.add("hidden");
+        document.getElementById("participantWalkView").classList.add("hidden");
+        document.getElementById("founderWalkAdminView").classList.add("hidden");
+    }
+
+    function showAuthScreen() {
+        currentViewName = "auth";
+        hideAllScreens();
+        document.getElementById("authScreenView").classList.remove("hidden");
+        document.getElementById("topTitle").textContent = "🍺 Pivochůzky";
+        updateHeaderSub();
+        renderDrawer();
+    }
+
+    function switchAuthMode(mode) {
+        authMode = mode;
+        document.getElementById("authTabLogin").classList.toggle("active", mode === "login");
+        document.getElementById("authTabRegister").classList.toggle("active", mode === "register");
+        document.getElementById("authSubmitBtn").textContent = mode === "login"
+            ? "Přihlásit se"
+            : "Zaregistrovat účet";
+    }
+
+    function handleAuthKeydown(e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            submitAccountAuth();
+        }
+    }
+
+    async function submitAccountAuth() {
+        const rawUser = document.getElementById("authUsername").value.trim();
+        const pass = document.getElementById("authPassword").value;
+        if (!rawUser) return alert("Zadej uživatelské jméno.");
+        if (!pass || pass.length < 3) return alert("Zadej heslo k účtu (alespoň 3 znaky).");
+
+        await pullAllFromFirebase(true);
+        const key = sanitizeId(rawUser);
+
+        if (authMode === "register") {
+            if (state.accounts[key]) return alert("Tento účet už existuje. Přepni na Přihlásit se.");
+            const newAcc = { username: rawUser, password: pass, templates: [] };
+            state.accounts[key] = newAcc;
+            state.loggedInAccount = key;
+            localStorage.setItem(SESSION_KEY, key);
+            await syncAccountToFirebase(key);
+            document.getElementById("authPassword").value = "";
+            showHomeTiles();
+            showToast(`Vítej v Pivochůzkách, ${rawUser}!`);
+        } else {
+            const acc = state.accounts[key];
+            if (!acc || acc.password !== pass) return alert("Neplatné uživatelské jméno nebo heslo.");
+            if (!Array.isArray(acc.templates)) acc.templates = [];
+            state.loggedInAccount = key;
+            localStorage.setItem(SESSION_KEY, key);
+            document.getElementById("authPassword").value = "";
+            showHomeTiles();
+            showToast(`Přihlášen jako ${acc.username}.`);
+        }
+    }
+
+    function logoutAccount() {
+        state.loggedInAccount = null;
+        state.activeParticipantWalk = null;
+        adminWalkCode = null;
+        editingStopId = null;
+        localStorage.removeItem(SESSION_KEY);
+        toggleDrawer(false);
+        showAuthScreen();
+        showToast("Odhlášeno.");
+    }
+
+    function showAccountManage() {
+        if (!state.loggedInAccount || !state.accounts[state.loggedInAccount]) return showAuthScreen();
+        const acc = state.accounts[state.loggedInAccount];
+        if (!Array.isArray(acc.templates)) acc.templates = [];
+        currentViewName = "account";
+        hideAllScreens();
+        document.getElementById("accountManageView").classList.remove("hidden");
+        document.getElementById("topTitle").textContent = "⚙️ Správa účtu";
+        document.getElementById("accEditUsername").value = acc.username;
+        document.getElementById("accEditPassword").value = "";
+        document.getElementById("accEditPasswordConfirm").value = "";
+        document.getElementById("newTplName").value = "";
+        updateHeaderSub();
+        renderUserTemplatesList();
+    }
+
+    async function saveAccountChanges() {
+        const oldKey = state.loggedInAccount;
+        const acc = state.accounts[oldKey];
+        if (!acc) return;
+
+        const newUsername = document.getElementById("accEditUsername").value.trim();
+        const newPass = document.getElementById("accEditPassword").value;
+        const newPassConfirm = document.getElementById("accEditPasswordConfirm").value;
+
+        if (!newUsername) return alert("Uživatelské jméno nesmí být prázdné.");
+        if (newPass || newPassConfirm) {
+            if (newPass.length < 3) return alert("Nové heslo musí mít alespoň 3 znaky.");
+            if (newPass !== newPassConfirm) return alert("Nová hesla se neshodují.");
+            acc.password = newPass;
+        }
+
+        const newKey = sanitizeId(newUsername);
+        if (newKey !== oldKey && state.accounts[newKey]) {
+            return alert("Účet s tímto uživatelským jménem už existuje.");
+        }
+
+        acc.username = newUsername;
+
+        if (newKey !== oldKey) {
+            state.accounts[newKey] = acc;
+            delete state.accounts[oldKey];
+            state.loggedInAccount = newKey;
+            localStorage.setItem(SESSION_KEY, newKey);
+            await moveAccountKeyInFirebase(oldKey, newKey, acc);
+
+            for (const w of Object.values(state.walks)) {
+                let changed = false;
+                if (w.ownerKey === oldKey) {
+                    w.ownerKey = newKey;
+                    changed = true;
+                }
+                if (w.users && w.users[oldKey]) {
+                    w.users[newKey] = { ...w.users[oldKey], name: newUsername };
+                    delete w.users[oldKey];
+                    changed = true;
+                }
+                if (changed) await syncWalkToFirebase(w.code);
+            }
+        } else {
+            await syncAccountToFirebase(newKey);
+            for (const w of Object.values(state.walks)) {
+                if (w.users && w.users[newKey]) {
+                    w.users[newKey].name = newUsername;
+                    await syncWalkToFirebase(w.code);
+                }
+            }
+        }
+
+        updateHeaderSub();
+        renderDrawer();
+        showToast("Změny účtu uloženy.");
+        showHomeTiles();
+    }
+
+    async function createUserTemplate() {
+        const accKey = state.loggedInAccount;
+        const templates = getAccountTemplates(accKey);
+        const name = document.getElementById("newTplName").value.trim();
+        if (!name) return alert("Zadej název templatu.");
+
+        templates.push({
+            id: "tpl_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+            name,
+            stops: []
+        });
+        await syncAccountToFirebase(accKey);
+        document.getElementById("newTplName").value = "";
+        renderUserTemplatesList();
+        showToast(`Template „${name}“ vytvořen.`);
+    }
+
+    async function deleteUserTemplate(tplId) {
+        const accKey = state.loggedInAccount;
+        const acc = state.accounts[accKey];
+        if (!acc || !Array.isArray(acc.templates)) return;
+        const tpl = acc.templates.find(t => t.id === tplId);
+        if (!tpl) return;
+        if (!confirm(`Smazat template „${tpl.name}“?`)) return;
+        acc.templates = acc.templates.filter(t => t.id !== tplId);
+        await syncAccountToFirebase(accKey);
+        renderUserTemplatesList();
+        showToast("Template smazán.");
+    }
+
+    async function addStopToUserTemplate(tplId) {
+        const accKey = state.loggedInAccount;
+        const tpl = getAccountTemplates(accKey).find(t => t.id === tplId);
+        if (!tpl) return;
+
+        const name = document.getElementById(`tplAddName_${tplId}`).value.trim();
+        if (!name) return alert("Zadej název hospody / zastávky.");
+        const priceVal = document.getElementById(`tplAddPrice_${tplId}`).value;
+
+        tpl.stops.push({
+            id: "ts_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+            num: document.getElementById(`tplAddNum_${tplId}`).value.trim(),
+            name,
+            time: document.getElementById(`tplAddTime_${tplId}`).value.trim(),
+            addr: document.getElementById(`tplAddAddr_${tplId}`).value.trim(),
+            photoUrl: document.getElementById(`tplAddPhoto_${tplId}`).value.trim(),
+            beerPrice: priceVal !== "" ? Number(priceVal) : null,
+            isTrain: document.getElementById(`tplAddTrain_${tplId}`).checked
+        });
+        await syncAccountToFirebase(accKey);
+        renderUserTemplatesList();
+        showToast("Hospoda přidána do templatu.");
+    }
+
+    async function moveStopInUserTemplate(tplId, index, direction) {
+        const accKey = state.loggedInAccount;
+        const tpl = getAccountTemplates(accKey).find(t => t.id === tplId);
+        if (!tpl || !Array.isArray(tpl.stops)) return;
+        const target = index + direction;
+        if (target < 0 || target >= tpl.stops.length) return;
+        const [item] = tpl.stops.splice(index, 1);
+        tpl.stops.splice(target, 0, item);
+        await syncAccountToFirebase(accKey);
+        renderUserTemplatesList();
+    }
+
+    async function removeStopFromUserTemplate(tplId, stopId) {
+        const accKey = state.loggedInAccount;
+        const tpl = getAccountTemplates(accKey).find(t => t.id === tplId);
+        if (!tpl || !Array.isArray(tpl.stops)) return;
+        tpl.stops = tpl.stops.filter(s => s.id !== stopId);
+        await syncAccountToFirebase(accKey);
+        renderUserTemplatesList();
+    }
+
+    function renderUserTemplatesList() {
+        const accKey = state.loggedInAccount;
+        const templates = getAccountTemplates(accKey);
+        const container = document.getElementById("userTemplatesList");
+        if (!container) return;
+
+        if (!templates.length) {
+            container.innerHTML = `<div class="muted">Zatím nemáš žádný vlastní template hospod. Vytvoř si ho výše.</div>`;
+            return;
+        }
+
+        container.innerHTML = templates.map(tpl => {
+            const stops = Array.isArray(tpl.stops) ? tpl.stops : [];
+            const stopsHtml = stops.length
+                ? stops.map((s, idx) => `
+                    <div class="template-stop-row">
+                        <div>
+                            <strong>${s.num ? escapeHtml(s.num) + " " : (idx + 1) + ". "}${escapeHtml(s.name)}</strong>
+                            ${s.time ? `<span class="stop-time">${escapeHtml(s.time)}</span>` : ""}
+                            ${s.beerPrice ? `<span class="muted">(${s.beerPrice} Kč)</span>` : ""}
+                            ${s.isTrain ? `<span class="muted">[Přesun]</span>` : ""}
+                            ${s.addr ? `<span class="muted">• ${escapeHtml(s.addr)}</span>` : ""}
+                        </div>
+                        <div style="display:flex; gap:4px;">
+                            <button class="btn btn-xs btn-secondary" ${idx === 0 ? "disabled" : ""} onclick="moveStopInUserTemplate('${escapeJs(tpl.id)}', ${idx}, -1)" title="Posunout nahoru">↑</button>
+                            <button class="btn btn-xs btn-secondary" ${idx === stops.length - 1 ? "disabled" : ""} onclick="moveStopInUserTemplate('${escapeJs(tpl.id)}', ${idx}, 1)" title="Posunout dolů">↓</button>
+                            <button class="btn btn-xs btn-secondary" onclick="removeStopFromUserTemplate('${escapeJs(tpl.id)}', '${escapeJs(s.id)}')">Smazat</button>
+                        </div>
+                    </div>
+                `).join("")
+                : `<div class="muted" style="font-size:0.8rem; margin-top:6px;">V tomto templatu zatím nejsou žádné hospody.</div>`;
+
+            return `
+                <div class="template-card">
+                    <div class="template-head">
+                        <div>
+                            <strong>📋 ${escapeHtml(tpl.name)}</strong>
+                            <span class="muted" style="font-size:0.78rem;">(${stops.length} zastávek)</span>
+                        </div>
+                        <button class="btn btn-xs btn-secondary" onclick="deleteUserTemplate('${escapeJs(tpl.id)}')">Smazat template</button>
+                    </div>
+
+                    ${stopsHtml}
+
+                    <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border);">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Číslo</label>
+                                <input type="text" id="tplAddNum_${escapeAttr(tpl.id)}" placeholder="např. 1.">
+                            </div>
+                            <div class="form-group">
+                                <label>Název hospody / zastávky *</label>
+                                <input type="text" id="tplAddName_${escapeAttr(tpl.id)}" placeholder="např. U Zlatého tygra">
+                            </div>
+                            <div class="form-group">
+                                <label>Čas</label>
+                                <input type="text" id="tplAddTime_${escapeAttr(tpl.id)}" placeholder="např. 14:00">
+                            </div>
+                            <div class="form-group">
+                                <label>Cena piva (Kč)</label>
+                                <input type="number" id="tplAddPrice_${escapeAttr(tpl.id)}" placeholder="např. 60">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Adresa / popis</label>
+                            <input type="text" id="tplAddAddr_${escapeAttr(tpl.id)}" placeholder="např. Husova 17">
+                        </div>
+                        <div class="form-group">
+                            <label>URL fotky (volitelné)</label>
+                            <input type="url" id="tplAddPhoto_${escapeAttr(tpl.id)}" placeholder="https://...">
+                        </div>
+                        <label style="display:flex; align-items:center; gap:8px; text-transform:none; margin-bottom:8px; color:var(--text);">
+                            <input type="checkbox" id="tplAddTrain_${escapeAttr(tpl.id)}" style="width:auto;"> Cesta vlakem / přesun
+                        </label>
+                        <button class="btn btn-xs" onclick="addStopToUserTemplate('${escapeJs(tpl.id)}')">+ Přidat zastávku do templatu</button>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    function getMemberRecord(walk, accKey) {
+        if (!walk || !walk.users) return null;
+        return walk.users[accKey] || null;
+    }
+
+    function countApprovedMembers(walk) {
+        return Object.values(walk.users || {}).filter(u => (u.status || "approved") === "approved").length;
+    }
+
+    function countPendingMembers(walk) {
+        return Object.values(walk.users || {}).filter(u => u.status === "pending").length;
+    }
+
+    function showHomeTiles() {
+        if (!state.loggedInAccount || !state.accounts[state.loggedInAccount]) {
+            return showAuthScreen();
+        }
+        currentViewName = "home";
+        state.activeParticipantWalk = null;
+        adminWalkCode = null;
+        editingStopId = null;
+
+        hideAllScreens();
+        document.getElementById("homeTilesView").classList.remove("hidden");
+        document.getElementById("topTitle").textContent = "🍺 Pivochůzky";
+        updateHeaderSub();
+        renderDrawer();
+        renderHomeTilesContent();
+    }
+
+    function renderHomeTilesContent() {
+        const accKey = state.loggedInAccount;
+        const allWalks = Object.values(state.walks);
+
+        const joinedWalks = allWalks.filter(w => Boolean(getMemberRecord(w, accKey)));
+        const organizedWalks = allWalks.filter(w => w.ownerKey === accKey);
+        const publicWalks = allWalks.filter(w => Boolean(w.isPublicListed) && !getMemberRecord(w, accKey));
+
+        renderJoinedTiles(joinedWalks, accKey);
+        renderOrganizedTiles(organizedWalks);
+        renderPublicTiles(publicWalks);
+    }
+
+    function renderTileCover(walk, leftPill, rightPill) {
+        const cover = walk.coverPhotoUrl
+            ? `<img class="tile-cover-img" src="${escapeAttr(walk.coverPhotoUrl)}" alt="${escapeAttr(walk.title)}" onerror="this.style.display='none'">`
+            : `<div class="tile-cover-fallback">🍺</div>`;
+        return `
+            <div class="tile-cover-wrap">
+                ${cover}
+                <div class="tile-badges">
+                    ${leftPill ? `<span class="tile-pill">${leftPill}</span>` : `<span></span>`}
+                    ${rightPill ? `<span class="tile-pill accent">${rightPill}</span>` : ``}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderJoinedTiles(walks, accKey) {
+        const el = document.getElementById("tilesJoinedGrid");
+        if (!walks.length) {
+            el.innerHTML = `<div class="card muted">Zatím nejsi přihlášen na žádný pochod. Vyber z veřejných pochodů níže nebo použij boční menu ☰.</div>`;
+            return;
+        }
+        el.innerHTML = walks.map(w => {
+            const member = getMemberRecord(w, accKey);
+            const isPending = member && member.status === "pending";
+            const filled = member ? Object.values(member.ratings || {}).filter(isStopFilled).length : 0;
+            const sm = getScoringMeta(w.scoringMode);
+            const statusHtml = isPending
+                ? `<span class="status-chip pending">⏳ Čeká na schválení organizátorem</span>`
+                : `<span class="status-chip approved">✓ Schváleno • Vyplněno ${filled}/${(w.stops || []).length}</span>`;
+
+            return `
+                <div class="walk-tile">
+                    ${renderTileCover(w, `${escapeHtml(w.code)} • ${escapeHtml(sm.label)}`, w.eventDate ? `📅 ${escapeHtml(formatCzDate(w.eventDate))}` : (w.accessPassword ? "🔒 Heslo" : ""))}
+                    <div class="tile-body">
+                        <div class="tile-title">${escapeHtml(w.title)}</div>
+                        <div>${statusHtml}</div>
+                        <div class="tile-meta">
+                            <span>Zastávek: ${(w.stops || []).length}</span>
+                            <span>•</span>
+                            <span>Účastníků: ${countApprovedMembers(w)}${w.maxParticipants ? "/" + w.maxParticipants : ""}</span>
+                        </div>
+                        <div class="tile-actions">
+                            ${isPending
+                                ? `<button class="btn btn-sm btn-secondary" disabled>Čeká na potvrzení</button>`
+                                : `<button class="btn btn-sm" onclick="openParticipantWalk('${escapeJs(w.code)}')">Otevřít pochod</button>`
+                            }
+                            ${w.ownerKey === accKey
+                                ? `<button class="btn btn-sm btn-secondary" onclick="openFounderWalkAdmin('${escapeJs(w.code)}')">Správa</button>`
+                                : ``
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    function renderOrganizedTiles(walks) {
+        const el = document.getElementById("tilesOrganizedGrid");
+        if (!walks.length) {
+            el.innerHTML = `<div class="card muted">Zatím neorganizuješ žádný pochod. Založ ho v bočním menu ☰.</div>`;
+            return;
+        }
+        el.innerHTML = walks.map(w => {
+            const pending = countPendingMembers(w);
+            const approved = countApprovedMembers(w);
+            const sm = getScoringMeta(w.scoringMode);
+            const visLabel = w.isPublicListed ? "🌍 Veřejný" : "🔗 Jen přes kód";
+            return `
+                <div class="walk-tile">
+                    ${renderTileCover(w, `${escapeHtml(w.code)} • ${visLabel}`, pending > 0 ? `⏳ ${pending} čeká` : `🎯 ${escapeHtml(sm.label)}`)}
+                    <div class="tile-body">
+                        <div class="tile-title">${escapeHtml(w.title)}</div>
+                        <div class="tile-meta">
+                            ${w.eventDate ? `<span>📅 ${escapeHtml(formatCzDate(w.eventDate))} •</span>` : ""}
+                            <span>Zastávek: ${(w.stops || []).length}</span>
+                            <span>•</span>
+                            <span>Schváleno: ${approved}${w.maxParticipants ? "/" + w.maxParticipants : ""}</span>
+                            ${w.accessPassword ? `<span>• 🔒 Heslo: <b>${escapeHtml(w.accessPassword)}</b></span>` : ""}
+                        </div>
+                        <div class="tile-actions">
+                            <button class="btn btn-sm btn-secondary" onclick="openParticipantWalk('${escapeJs(w.code)}')">Hodnotit</button>
+                            <button class="btn btn-sm" onclick="openFounderWalkAdmin('${escapeJs(w.code)}')">Správa pochodu</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    function renderPublicTiles(walks) {
+        const el = document.getElementById("tilesPublicGrid");
+        if (!walks.length) {
+            el.innerHTML = `<div class="card muted">Momentálně nejsou k dispozici žádné další veřejné pochody k přihlášení.</div>`;
+            return;
+        }
+        el.innerHTML = walks.map(w => {
+            const approved = countApprovedMembers(w);
+            const isFull = Boolean(w.maxParticipants && approved >= Number(w.maxParticipants));
+            const capText = w.maxParticipants ? `${approved}/${w.maxParticipants} míst` : `${approved} účastníků`;
+            const ownerName = (state.accounts[w.ownerKey] && state.accounts[w.ownerKey].username) || w.ownerKey;
+            const sm = getScoringMeta(w.scoringMode);
+
+            return `
+                <div class="walk-tile">
+                    ${renderTileCover(w, `${escapeHtml(w.code)} • ${escapeHtml(sm.label)}`, isFull ? "Obsazeno" : capText)}
+                    <div class="tile-body">
+                        <div class="tile-title">${escapeHtml(w.title)}</div>
+                        <div class="tile-meta">
+                            ${w.eventDate ? `<span>📅 <b>${escapeHtml(formatCzDate(w.eventDate))}</b> •</span>` : ""}
+                            <span>Organizátor: <b>${escapeHtml(ownerName)}</b></span>
+                            <span>•</span>
+                            <span>Zastávek: ${(w.stops || []).length}</span>
+                            ${w.requiresApproval ? `<span>• 📝 Schvaluje organizátor</span>` : ""}
+                            ${w.accessPassword ? `<span>• 🔒 Na heslo</span>` : ""}
+                        </div>
+                        <div class="tile-actions">
+                            <button class="btn btn-sm" ${isFull ? "disabled" : ""} onclick="joinPublicWalk('${escapeJs(w.code)}')">
+                                ${isFull ? "Kapacita naplněna" : (w.requiresApproval ? "Požádat o přihlášení" : "Přihlásit se na pochod")}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    function joinPublicWalk(code) {
+        const walk = state.walks[code];
+        if (!walk) return;
+        let pass = "";
+        if (walk.accessPassword) {
+            pass = prompt(`Pochod „${walk.title}“ je chráněn heslem. Zadej heslo pochodu:`) || "";
+            if (!pass) return;
+        }
+        enrollCurrentAccountToWalk(code, pass, false);
+    }
+
+    function joinWalkFromDrawer() {
+        const code = document.getElementById("drawerJoinCode").value.trim().toUpperCase();
+        const pass = document.getElementById("drawerJoinPass").value.trim();
+        if (!code || !state.walks[code]) return alert("Zadej platný kód pochodu.");
+        enrollCurrentAccountToWalk(code, pass, true);
+    }
+
+    async function enrollCurrentAccountToWalk(code, enteredPassword, fromDrawer) {
+        await pullAllFromFirebase(true);
+        const accKey = state.loggedInAccount;
+        const acc = state.accounts[accKey];
+        const walk = state.walks[code];
+        if (!acc || !walk) return alert("Pochod nebyl nalezen.");
+
+        if (!walk.users) walk.users = {};
+        if (walk.users[accKey]) {
+            if (fromDrawer) toggleDrawer(false);
+            showToast("Na tento pochod už jsi přihlášen.");
+            showHomeTiles();
+            return;
+        }
+
+        const isOwner = walk.ownerKey === accKey;
+        if (walk.accessPassword && !isOwner) {
+            if (!enteredPassword) return alert("Tento pochod vyžaduje přístupové heslo.");
+            if (enteredPassword !== walk.accessPassword) return alert("Nesprávné heslo pochodu.");
+        }
+
+        const approvedCount = countApprovedMembers(walk);
+        if (walk.maxParticipants && approvedCount >= Number(walk.maxParticipants) && !isOwner) {
+            return alert(`Kapacita pochodu (${walk.maxParticipants} osob) je již naplněna.`);
+        }
+
+        const status = (walk.requiresApproval && !isOwner) ? "pending" : "approved";
+        walk.users[accKey] = {
+            name: acc.username,
+            status,
+            ratings: {}
+        };
+        await syncWalkToFirebase(code);
+
+        if (fromDrawer) toggleDrawer(false);
+        showHomeTiles();
+
+        if (status === "pending") {
+            showToast("Žádost o přihlášení odeslána – čeká na schválení organizátorem.");
+        } else {
+            showToast(`Přihlášen na pochod ${walk.title}!`);
+        }
+    }
+
+    function populateCreateTemplateSelect() {
+        const select = document.getElementById("newWalkTemplate");
+        const prevVal = select.value || "empty";
+        const templates = getAccountTemplates(state.loggedInAccount);
+        let html = `<option value="empty">Prázdný pochod (bez zastávek)</option>`;
+        templates.forEach(t => {
+            const count = Array.isArray(t.stops) ? t.stops.length : 0;
+            html += `<option value="${escapeAttr(t.id)}">${escapeHtml(t.name)} (${count} zastávek)</option>`;
+        });
+        select.innerHTML = html;
+        if ([...select.options].some(o => o.value === prevVal)) {
+            select.value = prevVal;
+        } else {
+            select.value = "empty";
+        }
+    }
+
+    function showCreateWalkScreen() {
+        if (!state.loggedInAccount || !state.accounts[state.loggedInAccount]) return showAuthScreen();
+        currentViewName = "create";
+        hideAllScreens();
+        document.getElementById("createWalkView").classList.remove("hidden");
+        document.getElementById("topTitle").textContent = "➕ Vytvořit pochod";
+        document.getElementById("createdWalkBox").classList.add("hidden");
+        document.getElementById("newWalkTitle").value = "";
+        document.getElementById("newWalkDate").value = "";
+        populateCreateTemplateSelect();
+        document.getElementById("newWalkTemplate").value = "empty";
+        document.getElementById("newWalkScoringMode").value = "int_10";
+        document.getElementById("newWalkPhotoUrl").value = "";
+        document.getElementById("newWalkRoute").value = "";
+        document.getElementById("newWalkPassword").value = "";
+        document.getElementById("newWalkMaxPeople").value = "";
+        document.getElementById("newWalkPublicCheck").checked = false;
+        document.getElementById("newWalkApprovalCheck").checked = false;
+        document.getElementById("newPhotoPreviewWrap").style.display = "none";
+        renderCriteriaCheckboxes("newCriteriaContainer", "newCrit", getDefaultCriteriaConfig());
+        updateHeaderSub();
+    }
+
+    async function createWalk() {
+        const accKey = state.loggedInAccount;
+        const acc = state.accounts[accKey];
+        if (!acc) return showAuthScreen();
+
+        const title = document.getElementById("newWalkTitle").value.trim();
+        if (!title) return alert("Zadej název pochodu.");
+
+        const templateId = document.getElementById("newWalkTemplate").value;
+        const eventDate = document.getElementById("newWalkDate").value.trim();
+        const scoringMode = document.getElementById("newWalkScoringMode").value || "int_10";
+        const coverPhotoUrl = document.getElementById("newWalkPhotoUrl").value.trim();
+        const routeUrl = document.getElementById("newWalkRoute").value.trim();
+        const accessPassword = document.getElementById("newWalkPassword").value.trim();
+        const maxRaw = document.getElementById("newWalkMaxPeople").value.trim();
+        const maxParticipants = maxRaw !== "" && Number(maxRaw) > 0 ? Number(maxRaw) : null;
+        const criteria = readCriteriaFromDom("newCrit");
+        const isPublicListed = document.getElementById("newWalkPublicCheck").checked;
+        const requiresApproval = document.getElementById("newWalkApprovalCheck").checked;
+        const code = generateWalkCode();
+
+        state.walks[code] = {
+            code,
+            ownerKey: accKey,
+            title,
+            eventDate,
+            scoringMode,
+            coverPhotoUrl,
+            routeUrl,
+            accessPassword,
+            isPublicListed,
+            maxParticipants,
+            requiresApproval,
+            criteria,
+            stops: getStopsFromUserTemplate(accKey, templateId),
+            users: {
+                [accKey]: { name: acc.username, status: "approved", ratings: {} }
+            }
+        };
+        await syncWalkToFirebase(code);
+
+        const shareUrl = buildWalkShareUrl(code);
+        document.getElementById("createdCodeText").textContent = code;
+        document.getElementById("createdPassText").innerHTML = accessPassword
+            ? `🔒 Heslo: <b>${escapeHtml(accessPassword)}</b>`
+            : `🔓 Bez hesla`;
+        document.getElementById("createdShareUrl").value = shareUrl;
+        drawQrToCanvas("qrCanvas", `${code}|${shareUrl}`);
+        document.getElementById("createdWalkBox").classList.remove("hidden");
+        document.getElementById("openCreatedWalkBtn").onclick = () => openParticipantWalk(code);
+        document.getElementById("openCreatedAdminBtn").onclick = () => openFounderWalkAdmin(code);
+
+        showToast(`Pochod vytvořen! Kód: ${code}`);
+    }
+
+    function copyUrlInput(inputId) {
+        const el = document.getElementById(inputId);
+        el.select();
+        navigator.clipboard?.writeText(el.value);
+        showToast("Odkaz zkopírován.");
+    }
+
+    function openFounderWalkAdmin(code) {
+        const walk = state.walks[code];
+        if (!walk || !state.loggedInAccount || walk.ownerKey !== state.loggedInAccount) {
+            return alert("Úpravy tohoto pochodu má jen jeho zakladatel.");
+        }
+        currentViewName = "admin";
+        adminWalkCode = code;
+        editingStopId = null;
+        state.activeParticipantWalk = null;
+
+        hideAllScreens();
+        document.getElementById("founderWalkAdminView").classList.remove("hidden");
+        document.getElementById("topTitle").textContent = `⚙️ Správa: ${walk.title}`;
+        updateHeaderSub();
+        renderFounderWalkAdmin();
+    }
+
+    function renderFounderWalkAdmin() {
+        const walk = state.walks[adminWalkCode];
+        if (!walk) return;
+
+        const shareUrl = buildWalkShareUrl(walk.code);
+        document.getElementById("adminWalkCode").textContent = walk.code;
+        document.getElementById("adminWalkPassTag").innerHTML = walk.accessPassword
+            ? `🔒 Heslo: <b>${escapeHtml(walk.accessPassword)}</b>`
+            : `🔓 Bez hesla`;
+        document.getElementById("adminShareUrl").value = shareUrl;
+        drawQrToCanvas("adminQrCanvas", `${walk.code}|${shareUrl}`);
+
+        document.getElementById("editWalkTitle").value = walk.title || "";
+        document.getElementById("editWalkDate").value = walk.eventDate || "";
+        document.getElementById("editWalkScoringMode").value = walk.scoringMode || "int_10";
+        document.getElementById("editWalkPhotoUrl").value = walk.coverPhotoUrl || "";
+        previewPhotoUrl(walk.coverPhotoUrl || "", "editPhotoPreviewWrap", "editPhotoPreviewImg");
+        document.getElementById("editWalkRoute").value = walk.routeUrl || "";
+        document.getElementById("editWalkPassword").value = walk.accessPassword || "";
+        document.getElementById("editWalkMaxPeople").value = walk.maxParticipants || "";
+        renderCriteriaCheckboxes("editCriteriaContainer", "editCrit", walk.criteria);
+        document.getElementById("editWalkPublicCheck").checked = Boolean(walk.isPublicListed);
+        document.getElementById("editWalkApprovalCheck").checked = Boolean(walk.requiresApproval);
+
+        renderAdminMembers(walk);
+        renderAdminStopsList(walk);
+    }
+
+    function renderAdminMembers(walk) {
+        const approved = countApprovedMembers(walk);
+        const pending = countPendingMembers(walk);
+        document.getElementById("adminCapacitySummary").textContent =
+            `Schválení účastníci: ${approved}${walk.maxParticipants ? " / " + walk.maxParticipants : " (bez limitu)"} • Čeká na schválení: ${pending}`;
+
+        const entries = Object.entries(walk.users || {});
+        if (!entries.length) {
+            document.getElementById("adminMembersList").innerHTML = `<div class="muted">Zatím žádní účastníci.</div>`;
+            return;
+        }
+
+        document.getElementById("adminMembersList").innerHTML = entries.map(([uKey, u]) => {
+            const isOwner = uKey === walk.ownerKey;
+            const isPending = u.status === "pending";
+            return `
+                <div class="member-row">
+                    <div>
+                        <strong>${escapeHtml(u.name)}</strong>
+                        ${isOwner ? `<span class="code-tag">Organizátor</span>` : ""}
+                        ${isPending
+                            ? `<span class="status-chip pending">⏳ Čeká na schválení</span>`
+                            : `<span class="status-chip approved">✓ Schválen</span>`
+                        }
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        ${isPending ? `<button class="btn btn-xs" onclick="approveMember('${escapeJs(uKey)}')">Schválit</button>` : ""}
+                        ${!isOwner ? `<button class="btn btn-xs btn-secondary" onclick="removeMember('${escapeJs(uKey)}')">Odebrat</button>` : ""}
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    async function approveMember(uKey) {
+        const walk = state.walks[adminWalkCode];
+        if (!walk || !walk.users[uKey]) return;
+        const approved = countApprovedMembers(walk);
+        if (walk.maxParticipants && approved >= Number(walk.maxParticipants)) {
+            return alert(`Nelze schválit – kapacita pochodu (${walk.maxParticipants} osob) je plná.`);
+        }
+        walk.users[uKey].status = "approved";
+        await syncWalkToFirebase(adminWalkCode);
+        renderAdminMembers(walk);
+        showToast("Účastník schválen.");
+    }
+
+    async function removeMember(uKey) {
+        const walk = state.walks[adminWalkCode];
+        if (!walk || uKey === walk.ownerKey) return;
+        const memberName = walk.users[uKey]?.name || uKey;
+        if (!confirm(`Opravdu chceš odstranit účastníka „${memberName}“ z tohoto pochodu?`)) return;
+        delete walk.users[uKey];
+        await syncWalkToFirebase(adminWalkCode);
+        renderAdminMembers(walk);
+        showToast(`Účastník ${memberName} odstraněn.`);
+    }
+
+    async function saveWalkMeta() {
+        const walk = state.walks[adminWalkCode];
+        if (!walk || walk.ownerKey !== state.loggedInAccount) return;
+        const title = document.getElementById("editWalkTitle").value.trim();
+        if (!title) return alert("Název pochodu nesmí být prázdný.");
+
+        const maxRaw = document.getElementById("editWalkMaxPeople").value.trim();
+        walk.title = title;
+        walk.eventDate = document.getElementById("editWalkDate").value.trim();
+        walk.scoringMode = document.getElementById("editWalkScoringMode").value || "int_10";
+        walk.coverPhotoUrl = document.getElementById("editWalkPhotoUrl").value.trim();
+        walk.routeUrl = document.getElementById("editWalkRoute").value.trim();
+        walk.accessPassword = document.getElementById("editWalkPassword").value.trim();
+        walk.maxParticipants = maxRaw !== "" && Number(maxRaw) > 0 ? Number(maxRaw) : null;
+        walk.criteria = readCriteriaFromDom("editCrit");
+        walk.isPublicListed = document.getElementById("editWalkPublicCheck").checked;
+        walk.requiresApproval = document.getElementById("editWalkApprovalCheck").checked;
+
+        await syncWalkToFirebase(adminWalkCode);
+        document.getElementById("topTitle").textContent = `⚙️ Správa: ${walk.title}`;
+        updateHeaderSub();
+        renderFounderWalkAdmin();
+        showToast("Nastavení pochodu uloženo.");
+    }
+
+    function renderAdminStopsList(walk) {
+        const container = document.getElementById("adminStopsList");
+        if (!walk.stops.length) {
+            container.innerHTML = `<div class="muted">Zatím žádné zastávky.</div>`;
+            return;
+        }
+
+        container.innerHTML = walk.stops.map((s, idx) => {
+            const isEditing = editingStopId === s.id;
+            const thumbHtml = s.photoUrl
+                ? `<img class="admin-stop-thumb" src="${escapeAttr(s.photoUrl)}" alt="${escapeAttr(s.name)}" onerror="this.style.display='none'">`
+                : "";
+
+            return `
+                <div class="admin-stop-item">
+                    <div class="admin-stop-top">
+                        <div class="admin-stop-info">
+                            ${thumbHtml}
+                            <div>
+                                <strong>${s.num ? escapeHtml(s.num) + " " : (idx + 1) + ". "}${escapeHtml(s.name)}</strong>
+                                ${s.time ? `<span class="stop-time">${escapeHtml(s.time)}</span>` : ""}
+                                ${s.beerPrice ? `<span class="muted">(${s.beerPrice} Kč)</span>` : ""}
+                                ${s.isTrain ? `<span class="muted">[Přesun]</span>` : ""}
+                                ${s.addr ? `<div class="muted" style="font-size:0.78rem;">${escapeHtml(s.addr)}</div>` : ""}
+                            </div>
+                        </div>
+                        <div class="admin-stop-controls">
+                            <button class="btn btn-xs btn-secondary" ${idx === 0 ? "disabled" : ""} onclick="moveStopInAdminWalk(${idx}, -1)" title="Posunout nahoru">↑</button>
+                            <button class="btn btn-xs btn-secondary" ${idx === walk.stops.length - 1 ? "disabled" : ""} onclick="moveStopInAdminWalk(${idx}, 1)" title="Posunout dolů">↓</button>
+                            <button class="btn btn-xs btn-secondary" onclick="toggleEditStop('${s.id}')">${isEditing ? "Zavřít" : "Upravit"}</button>
+                            <button class="btn btn-xs btn-secondary" onclick="removeStopFromAdminWalk('${s.id}')">Smazat</button>
+                        </div>
+                    </div>
+
+                    ${isEditing ? `
+                        <div class="admin-stop-edit-box">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Číslo</label>
+                                    <input type="text" id="ed_num_${s.id}" value="${escapeAttr(s.num || "")}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Název hospody / zastávky *</label>
+                                    <input type="text" id="ed_name_${s.id}" value="${escapeAttr(s.name || "")}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Čas</label>
+                                    <input type="text" id="ed_time_${s.id}" value="${escapeAttr(s.time || "")}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Výchozí cena piva (Kč)</label>
+                                    <input type="number" id="ed_price_${s.id}" value="${s.beerPrice ?? ""}">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Adresa / popis</label>
+                                <input type="text" id="ed_addr_${s.id}" value="${escapeAttr(s.addr || "")}">
+                            </div>
+                            <div class="form-group">
+                                <label>URL fotky hospody / zastávky</label>
+                                <input type="url" id="ed_photo_${s.id}" value="${escapeAttr(s.photoUrl || "")}">
+                            </div>
+                            <label style="display:flex; align-items:center; gap:8px; text-transform:none; margin-bottom:10px; color:var(--text);">
+                                <input type="checkbox" id="ed_train_${s.id}" style="width:auto;" ${s.isTrain ? "checked" : ""}> Cesta vlakem / přesun
+                            </label>
+                            <button class="btn btn-xs" onclick="saveEditedStop('${s.id}')">Uložit úpravu zastávky</button>
+                        </div>
+                    ` : ""}
+                </div>
+            `;
+        }).join("");
+    }
+
+    async function moveStopInAdminWalk(index, direction) {
+        const walk = state.walks[adminWalkCode];
+        if (!walk || walk.ownerKey !== state.loggedInAccount) return;
+        const target = index + direction;
+        if (target < 0 || target >= walk.stops.length) return;
+        const [item] = walk.stops.splice(index, 1);
+        walk.stops.splice(target, 0, item);
+        await syncWalkToFirebase(adminWalkCode);
+        renderAdminStopsList(walk);
+        showToast("Pořadí zastávek upraveno.");
+    }
+
+    function toggleEditStop(stopId) {
+        editingStopId = editingStopId === stopId ? null : stopId;
+        const walk = state.walks[adminWalkCode];
+        if (walk) renderAdminStopsList(walk);
+    }
+
+    async function saveEditedStop(stopId) {
+        const walk = state.walks[adminWalkCode];
+        if (!walk || walk.ownerKey !== state.loggedInAccount) return;
+        const stop = walk.stops.find(s => s.id === stopId);
+        if (!stop) return;
+
+        const name = document.getElementById(`ed_name_${stopId}`).value.trim();
+        if (!name) return alert("Název zastávky nesmí být prázdný.");
+        const priceVal = document.getElementById(`ed_price_${stopId}`).value;
+
+        stop.num = document.getElementById(`ed_num_${stopId}`).value.trim();
+        stop.name = name;
+        stop.time = document.getElementById(`ed_time_${stopId}`).value.trim();
+        stop.addr = document.getElementById(`ed_addr_${stopId}`).value.trim();
+        stop.photoUrl = document.getElementById(`ed_photo_${stopId}`).value.trim();
+        stop.beerPrice = priceVal !== "" ? Number(priceVal) : null;
+        stop.isTrain = document.getElementById(`ed_train_${stopId}`).checked;
+
+        editingStopId = null;
+        await syncWalkToFirebase(adminWalkCode);
+        renderAdminStopsList(walk);
+        showToast("Zastávka upravena.");
+    }
+
+    async function addStopToAdminWalk() {
+        const walk = state.walks[adminWalkCode];
+        if (!walk || walk.ownerKey !== state.loggedInAccount) return;
+        const name = document.getElementById("addStopName").value.trim();
+        if (!name) return alert("Zadej název zastávky.");
+        const priceVal = document.getElementById("addStopPrice").value;
+
+        walk.stops.push({
+            id: "st_" + Date.now(),
+            num: document.getElementById("addStopNum").value.trim(),
+            name,
+            time: document.getElementById("addStopTime").value.trim(),
+            addr: document.getElementById("addStopAddr").value.trim(),
+            photoUrl: document.getElementById("addStopPhotoUrl").value.trim(),
+            beerPrice: priceVal !== "" ? Number(priceVal) : null,
+            isTrain: document.getElementById("addStopIsTrain").checked
+        });
+        await syncWalkToFirebase(adminWalkCode);
+
+        document.getElementById("addStopNum").value = "";
+        document.getElementById("addStopName").value = "";
+        document.getElementById("addStopTime").value = "";
+        document.getElementById("addStopAddr").value = "";
+        document.getElementById("addStopPhotoUrl").value = "";
+        document.getElementById("addStopPhotoPreviewWrap").style.display = "none";
+        document.getElementById("addStopPrice").value = "";
+        document.getElementById("addStopIsTrain").checked = false;
+
+        renderAdminStopsList(walk);
+        showToast("Zastávka přidána.");
+    }
+
+    async function removeStopFromAdminWalk(stopId) {
+        const walk = state.walks[adminWalkCode];
+        if (!walk || walk.ownerKey !== state.loggedInAccount) return;
+        walk.stops = walk.stops.filter(s => s.id !== stopId);
+        if (editingStopId === stopId) editingStopId = null;
+        await syncWalkToFirebase(adminWalkCode);
+        renderAdminStopsList(walk);
+        showToast("Zastávka smazána.");
+    }
+
+    function exportSingleWalkJson() {
+        const code = adminWalkCode || state.activeParticipantWalk;
+        const walk = state.walks[code];
+        if (!walk) return;
+        const payload = {
+            app: "Pivochuzky",
+            exportedAt: new Date().toISOString(),
+            walk
+        };
+        downloadFile(`${code.toLowerCase()}-zaloha.json`, JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+        showToast(`Stažen JSON pochodu ${code}.`);
+    }
+
+    function restoreSingleWalkFromJson(event) {
+        const file = event.target.files?.[0];
+        if (!file || !adminWalkCode) return;
+        const reader = new FileReader();
+        reader.onload = async () => {
+            try {
+                const parsed = JSON.parse(reader.result);
+                const sourceWalk = parsed.walk || parsed;
+                if (!sourceWalk || !Array.isArray(sourceWalk.stops)) {
+                    return alert("Neplatný formát JSON zálohy.");
+                }
+                const current = state.walks[adminWalkCode];
+                if (!current) return;
+                if (!confirm(`Přepsat zastávky, nastavení a účastníky pochodu „${current.title}“ ze zálohy JSON?`)) return;
+
+                state.walks[adminWalkCode] = {
+                    ...sourceWalk,
+                    code: current.code,
+                    ownerKey: current.ownerKey
+                };
+                await syncWalkToFirebase(adminWalkCode);
+                renderFounderWalkAdmin();
+                showToast("Pochod obnoven ze zálohy JSON.");
+            } catch {
+                alert("Nepodařilo se načíst JSON soubor.");
+            }
+            event.target.value = "";
+        };
+        reader.readAsText(file);
+    }
+
+    async function clearAllWalkRatings() {
+        const walk = state.walks[adminWalkCode];
+        if (!walk || walk.ownerKey !== state.loggedInAccount) return;
+        if (!confirm(`Opravdu vymazat všechna hodnocení a vypitá piva všech účastníků v pochodu „${walk.title}“?`)) return;
+
+        Object.values(walk.users || {}).forEach(u => {
+            u.ratings = {};
+        });
+        await syncWalkToFirebase(adminWalkCode);
+        showToast("Všechna hodnocení účastníků vymazána.");
+    }
+
+    async function deleteCurrentWalk() {
+        const walk = state.walks[adminWalkCode];
+        if (!walk || walk.ownerKey !== state.loggedInAccount) return;
+        if (!confirm(`Opravdu trvale smazat pochod „${walk.title}“ (${walk.code})?`)) return;
+
+        const codeToDelete = adminWalkCode;
+        delete state.walks[codeToDelete];
+        adminWalkCode = null;
+        await deleteWalkFromFirebase(codeToDelete);
+        showToast("Pochod smazán.");
+        showHomeTiles();
+    }
+
+    function openParticipantWalk(code) {
+        const accKey = state.loggedInAccount;
+        const walk = state.walks[code];
+        if (!accKey || !walk) return;
+
+        const member = getMemberRecord(walk, accKey);
+        if (!member) {
+            return alert("Nejprve se na tento pochod přihlas.");
+        }
+        if (member.status === "pending") {
+            return alert("Tvoje přihláška zatím čeká na schválení organizátorem.");
+        }
+
+        currentViewName = "participant";
+        state.activeParticipantWalk = code;
+        adminWalkCode = null;
+
+        hideAllScreens();
+        document.getElementById("participantWalkView").classList.remove("hidden");
+        document.getElementById("topTitle").textContent = walk.title;
+        updateHeaderSub();
+        switchParticipantTab("my");
+    }
+
+    function switchParticipantTab(tab) {
+        document.getElementById("pTabMy").classList.toggle("active", tab === "my");
+        document.getElementById("pTabAll").classList.toggle("active", tab === "all");
+        document.getElementById("pMyRatingsTab").classList.toggle("hidden", tab !== "my");
+        document.getElementById("pAllResultsTab").classList.toggle("hidden", tab !== "all");
+        if (tab === "my") renderParticipantRatings();
+        if (tab === "all") renderParticipantResults();
+    }
+
+    function isStopFilled(r) {
+        if (!r) return false;
+        return Boolean(
+            (r.pivo !== null && r.pivo !== undefined && r.pivo !== "") ||
+            (r.obsluha !== null && r.obsluha !== undefined && r.obsluha !== "") ||
+            (r.prostredi !== null && r.prostredi !== undefined && r.prostredi !== "") ||
+            (r.dojem !== null && r.dojem !== undefined && r.dojem !== "") ||
+            (r.wc !== null && r.wc !== undefined && r.wc !== "") ||
+            r.wcVisits || r.tapster || r.food || r.pocet || r.note
+        );
+    }
+
+    function renderScoreControl(id, val, mode) {
+        const meta = getScoringMeta(mode);
+        if (meta.type === "select_int") {
+            let opts = `<option value="">--</option>`;
+            for (let i = meta.max; i >= 1; i--) {
+                const selected = val !== null && val !== undefined && val !== "" && Number(val) === i ? "selected" : "";
+                opts += `<option value="${i}" ${selected}>${i} / ${meta.max}</option>`;
+            }
+            return `<select id="${id}">${opts}</select>`;
+        }
+
+        if (meta.type === "select_half") {
+            let opts = `<option value="">--</option>`;
+            for (let v = meta.max; v >= 0.5; v = Math.round((v - 0.5) * 10) / 10) {
+                const numVal = Number(v.toFixed(1));
+                const isSelected = val !== null && val !== undefined && val !== "" && Math.abs(Number(val) - numVal) < 0.01;
+                opts += `<option value="${numVal}" ${isSelected ? "selected" : ""}>${numVal.toFixed(1).replace(".", ",")} / ${meta.max}</option>`;
+            }
+            return `<select id="${id}">${opts}</select>`;
+        }
+
+        const numVal = (val !== null && val !== undefined && val !== "" && !Number.isNaN(Number(val)))
+            ? Number(val).toFixed(1)
+            : "";
+        return `<input type="number" id="${id}" min="0" max="${meta.max}" step="0.1" placeholder="0,0 – ${meta.max},0" value="${escapeAttr(numVal)}">`;
+    }
+
+    function parseScoreInput(rawVal, mode) {
+        if (rawVal === null || rawVal === undefined || String(rawVal).trim() === "") return null;
+        const normalized = String(rawVal).trim().replace(",", ".");
+        const n = Number(normalized);
+        if (Number.isNaN(n)) return null;
+        const meta = getScoringMeta(mode);
+        const clamped = Math.min(meta.max, Math.max(0, n));
+        return meta.type === "select_int" ? Math.round(clamped) : Math.round(clamped * 10) / 10;
+    }
+
+    function renderParticipantRatings() {
+        const accKey = state.loggedInAccount;
+        const walk = state.walks[state.activeParticipantWalk];
+        if (!accKey || !walk) return;
+
+        const crit = normalizeCriteria(walk.criteria);
+        const mode = walk.scoringMode || "int_10";
+        const meta = getScoringMeta(mode);
+        const u = walk.users && walk.users[accKey];
+        const ratings = (u && u.ratings) || {};
+        const container = document.getElementById("pMyRatingsTab");
+
+        if (!walk.stops.length) {
+            container.innerHTML = `<div class="card"><p class="muted">Tento pochod zatím nemá žádné zastávky.</p></div>`;
+            return;
+        }
+
+        const openIds = new Set(
+            [...container.querySelectorAll(".stop-card.open")].map(el => el.id.replace(/^sc_/, ""))
+        );
+
+        const nextStop = walk.stops.find(s => !isStopFilled(ratings[s.id]));
+
+        container.innerHTML = walk.stops.map(stop => {
+            const r = ratings[stop.id] || {};
+            const done = isStopFilled(r);
+            const isNext = !done && nextStop && nextStop.id === stop.id;
+            const isOpen = openIds.has(stop.id);
+            const cena = r.cena !== undefined && r.cena !== null && r.cena !== "" ? r.cena : (stop.beerPrice || "");
+            const stopPhotoHtml = stop.photoUrl
+                ? `<img class="stop-hero-photo" src="${escapeAttr(stop.photoUrl)}" alt="${escapeAttr(stop.name)}" onerror="this.style.display='none'">`
+                : "";
+
+            const fieldsHtml = [];
+            if (crit.pivo) fieldsHtml.push(`<div class="form-group"><label>🍺 Pivo (${meta.label})</label>${renderScoreControl(`${stop.id}_pivo`, r.pivo, mode)}</div>`);
+            if (crit.obsluha) fieldsHtml.push(`<div class="form-group"><label>🙋 Obsluha (${meta.label})</label>${renderScoreControl(`${stop.id}_obsluha`, r.obsluha, mode)}</div>`);
+            if (crit.prostredi) fieldsHtml.push(`<div class="form-group"><label>🏠 Prostředí (${meta.label})</label>${renderScoreControl(`${stop.id}_prostredi`, r.prostredi, mode)}</div>`);
+            if (crit.dojem) fieldsHtml.push(`<div class="form-group"><label>⭐ Dojem (${meta.label})</label>${renderScoreControl(`${stop.id}_dojem`, r.dojem, mode)}</div>`);
+            if (crit.wc) fieldsHtml.push(`<div class="form-group"><label>🚽 WC (${meta.label})</label>${renderScoreControl(`${stop.id}_wc`, r.wc, mode)}</div>`);
+            if (crit.cena) fieldsHtml.push(`<div class="form-group"><label>💰 Cena (Kč)</label><input type="number" id="${stop.id}_cena" value="${cena}"></div>`);
+
+            if (crit.pocet) {
+                fieldsHtml.push(`
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>🍻 Počet piv</label>
+                        <div class="stepper">
+                            <button type="button" class="step-btn" onclick="adjCounter('${stop.id}_pocet', -1)">−</button>
+                            <input type="number" id="${stop.id}_pocet" min="0" value="${r.pocet || 0}">
+                            <button type="button" class="step-btn" onclick="adjCounter('${stop.id}_pocet', 1)">+</button>
+                        </div>
+                    </div>
+                `);
+            }
+
+            if (crit.wcVisits) {
+                fieldsHtml.push(`
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>🚻 Počet návštěv WC</label>
+                        <div class="stepper">
+                            <button type="button" class="step-btn" onclick="adjCounter('${stop.id}_wcVisits', -1)">−</button>
+                            <input type="number" id="${stop.id}_wcVisits" min="0" value="${r.wcVisits || 0}">
+                            <button type="button" class="step-btn" onclick="adjCounter('${stop.id}_wcVisits', 1)">+</button>
+                        </div>
+                    </div>
+                `);
+            }
+
+            if (crit.tapster) {
+                fieldsHtml.push(`
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>🧔 Jméno výčepáka</label>
+                        <input type="text" id="${stop.id}_tapster" maxlength="80" placeholder="např. Karel" value="${escapeAttr(r.tapster || "")}">
+                    </div>
+                `);
+            }
+
+            if (crit.food) {
+                fieldsHtml.push(`
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>🍽️ Co jsem si dal k jídlu</label>
+                        <input type="text" id="${stop.id}_food" maxlength="140" placeholder="např. nakládaný hermelín, guláš..." value="${escapeAttr(r.food || "")}">
+                    </div>
+                `);
+            }
+
+            if (crit.note) {
+                fieldsHtml.push(`
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>💬 Poznámka / hláška</label>
+                        <input type="text" id="${stop.id}_note" maxlength="160" value="${escapeAttr(r.note || "")}">
+                    </div>
+                `);
+            }
+
+            return `
+                <div class="stop-card ${stop.isTrain ? "train-stop" : ""} ${isNext ? "next-up" : ""} ${isOpen ? "open" : ""}" id="sc_${stop.id}">
+                    <div class="stop-header" onclick="document.getElementById('sc_${stop.id}').classList.toggle('open')">
+                        <div>
+                            <div class="stop-title">
+                                ${stop.num ? escapeHtml(stop.num) + " " : ""}${escapeHtml(stop.name)}
+                                ${stop.time ? `<span class="stop-time">${escapeHtml(stop.time)}</span>` : ""}
+                                ${isNext ? `<span class="stop-next-tag">Na řadě</span>` : ""}
+                            </div>
+                            <div class="stop-address">${escapeHtml(stop.addr || "")}</div>
+                        </div>
+                        <span class="badge ${done ? "done" : ""}">${done ? "✓ Vyplněno" : "Nevyplněno"}</span>
+                    </div>
+                    <div class="stop-body">
+                        ${stopPhotoHtml}
+                        ${fieldsHtml.length
+                            ? `<div class="form-grid">${fieldsHtml.join("")}</div>`
+                            : `<p class="muted">Pro tento pochod nejsou zapnuty žádné hodnoticí položky.</p>`
+                        }
+                        <button class="btn" style="margin-top:10px;" onclick="saveParticipantRating('${stop.id}')">Uložit</button>
+                        ${done ? `<button class="btn-danger-outline" onclick="clearParticipantRating('${stop.id}')">Vymazat hodnocení zastávky</button>` : ""}
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    function adjCounter(inputId, delta) {
+        const el = document.getElementById(inputId);
+        if (!el) return;
+        el.value = Math.max(0, (Number(el.value) || 0) + delta);
+    }
+
+    async function saveParticipantRating(stopId) {
+        const accKey = state.loggedInAccount;
+        const walkCode = state.activeParticipantWalk;
+        const walk = state.walks[walkCode];
+        if (!accKey || !walk) return;
+        const u = walk.users[accKey];
+        if (!u.ratings) u.ratings = {};
+
+        const crit = normalizeCriteria(walk.criteria);
+        const mode = walk.scoringMode || "int_10";
+        const getVal = (id) => {
+            const el = document.getElementById(id);
+            return el ? el.value : null;
+        };
+
+        const cenaRaw = getVal(`${stopId}_cena`);
+        u.ratings[stopId] = {
+            pivo: crit.pivo ? parseScoreInput(getVal(`${stopId}_pivo`), mode) : null,
+            obsluha: crit.obsluha ? parseScoreInput(getVal(`${stopId}_obsluha`), mode) : null,
+            prostredi: crit.prostredi ? parseScoreInput(getVal(`${stopId}_prostredi`), mode) : null,
+            dojem: crit.dojem ? parseScoreInput(getVal(`${stopId}_dojem`), mode) : null,
+            wc: crit.wc ? parseScoreInput(getVal(`${stopId}_wc`), mode) : null,
+            wcVisits: crit.wcVisits ? Math.max(0, Number(getVal(`${stopId}_wcVisits`)) || 0) : 0,
+            tapster: crit.tapster ? String(getVal(`${stopId}_tapster`) || "").trim() : "",
+            food: crit.food ? String(getVal(`${stopId}_food`) || "").trim() : "",
+            cena: crit.cena && cenaRaw !== "" && cenaRaw !== null ? Number(cenaRaw) : null,
+            pocet: crit.pocet ? Math.max(0, Number(getVal(`${stopId}_pocet`)) || 0) : 0,
+            note: crit.note ? String(getVal(`${stopId}_note`) || "").trim() : "",
+            updatedAt: new Date().toISOString()
+        };
+        await syncWalkToFirebase(walkCode);
+        renderParticipantRatings();
+        showToast("✓ Uloženo");
+    }
+
+    async function clearParticipantRating(stopId) {
+        const accKey = state.loggedInAccount;
+        const walkCode = state.activeParticipantWalk;
+        const walk = state.walks[walkCode];
+        if (!accKey || !walk) return;
+        const u = walk.users[accKey];
+        if (u && u.ratings) delete u.ratings[stopId];
+        await syncWalkToFirebase(walkCode);
+        renderParticipantRatings();
+        showToast("Hodnocení vymazáno");
+    }
+
+    function avgNums(arr) {
+        const valid = arr.filter(n => n !== null && n !== undefined && !Number.isNaN(Number(n)) && Number(n) > 0);
+        return valid.length ? valid.reduce((a, b) => a + Number(b), 0) / valid.length : null;
+    }
+
+    function renderParticipantResults() {
+        const walk = state.walks[state.activeParticipantWalk];
+        if (!walk) return;
+        const crit = normalizeCriteria(walk.criteria);
+        const mode = walk.scoringMode || "int_10";
+        const meta = getScoringMeta(mode);
+        const users = Object.values(walk.users || {}).filter(u => (u.status || "approved") === "approved");
+        let totalBeers = 0, totalSpend = 0, totalWcVisits = 0;
+
+        const drinkerRows = users.map(u => {
+            let bSum = 0, sSum = 0, wcSum = 0;
+            Object.entries(u.ratings || {}).forEach(([sId, r]) => {
+                const st = walk.stops.find(x => x.id === sId);
+                const beers = Number(r.pocet || 0);
+                const price = (r.cena && Number(r.cena) > 0) ? Number(r.cena) : (st && st.beerPrice ? Number(st.beerPrice) : 0);
+                bSum += beers;
+                if (beers > 0 && price > 0) sSum += beers * price;
+                wcSum += Number(r.wcVisits || 0);
+            });
+            totalBeers += bSum;
+            totalSpend += sSum;
+            totalWcVisits += wcSum;
+            return { name: u.name, beers: bSum, spend: Math.round(sSum), wcVisits: wcSum };
+        }).sort((a, b) => b.beers - a.beers);
+
+        const stopCards = walk.stops.map(st => {
+            let scores = [], piva = [], ceny = [], beers = 0, spend = 0, wcVisits = 0, tapsters = [], foods = [], notes = [];
+            users.forEach(u => {
+                const r = u.ratings && u.ratings[st.id];
+                if (!r) return;
+                [r.pivo, r.obsluha, r.prostredi, r.dojem, r.wc].forEach(v => { if (v !== null && v !== undefined && v !== "") scores.push(Number(v)); });
+                if (r.pivo !== null && r.pivo !== undefined && r.pivo !== "") piva.push(Number(r.pivo));
+                const price = (r.cena && Number(r.cena) > 0) ? Number(r.cena) : (st.beerPrice ? Number(st.beerPrice) : null);
+                if (price) ceny.push(price);
+                const b = Number(r.pocet || 0);
+                beers += b;
+                if (b > 0 && price) spend += b * price;
+                wcVisits += Number(r.wcVisits || 0);
+                if (r.tapster) tapsters.push(`${escapeHtml(u.name)}: ${escapeHtml(r.tapster)}`);
+                if (r.food) foods.push(`${escapeHtml(u.name)}: ${escapeHtml(r.food)}`);
+                if (r.note) notes.push(`<b>${escapeHtml(u.name)}:</b> „${escapeHtml(r.note)}“`);
+            });
+            const overall = avgNums(scores);
+            const beerAvg = avgNums(piva);
+            const priceAvg = avgNums(ceny);
+            const photoHtml = st.photoUrl
+                ? `<img class="stop-hero-photo" style="max-height:110px; margin-bottom:8px;" src="${escapeAttr(st.photoUrl)}" alt="${escapeAttr(st.name)}" onerror="this.style.display='none'">`
+                : "";
+
+            const pills = [];
+            if (crit.pivo) pills.push(`<span class="metric-pill">🍺 Pivo: <b>${beerAvg !== null ? beerAvg.toFixed(1).replace(".", ",") : "–"}</b></span>`);
+            if (crit.cena) pills.push(`<span class="metric-pill">💰 Cena: <b>${priceAvg !== null ? Math.round(priceAvg) + " Kč" : "–"}</b></span>`);
+            if (crit.pocet) pills.push(`<span class="metric-pill">🍻 Piv: <b>${beers}</b></span>`);
+            if (crit.wcVisits) pills.push(`<span class="metric-pill">🚻 WC návštěv: <b>${wcVisits}</b></span>`);
+            if (crit.pocet && crit.cena) pills.push(`<span class="metric-pill">🧾 Útrata: <b>${Math.round(spend)} Kč</b></span>`);
+
+            const extras = [];
+            if (crit.tapster && tapsters.length) extras.push(`<div><b>Výčepáci:</b> ${tapsters.join(" • ")}</div>`);
+            if (crit.food && foods.length) extras.push(`<div><b>Jídlo:</b> ${foods.join(" • ")}</div>`);
+            if (crit.note && notes.length) extras.push(`<div>${notes.join("<br>")}</div>`);
+
+            return `
+                <div class="result-card ${st.isTrain ? "train-stop" : ""}">
+                    ${photoHtml}
+                    <div class="result-top">
+                        <strong>${escapeHtml(st.name)}</strong>
+                        <span class="result-score">${overall !== null ? overall.toFixed(1).replace(".", ",") + " / " + meta.max : "–"}</span>
+                    </div>
+                    <div class="metrics-row">${pills.join("")}</div>
+                    ${extras.length ? `<div class="notes-box">${extras.join("")}</div>` : ""}
+                </div>
+            `;
+        }).join("");
+
+        document.getElementById("pGlobalStats").innerHTML = `
+            <div class="stat-box"><div class="stat-val">${users.length}</div><div class="stat-lbl">Účastníků</div></div>
+            <div class="stat-box"><div class="stat-val">${totalBeers}</div><div class="stat-lbl">Vypitých piv</div></div>
+            <div class="stat-box"><div class="stat-val">${Math.round(totalSpend)} Kč</div><div class="stat-lbl">Útrata</div></div>
+            <div class="stat-box"><div class="stat-val">${crit.wcVisits ? totalWcVisits : walk.stops.length}</div><div class="stat-lbl">${crit.wcVisits ? "Návštěv WC" : "Zastávek"}</div></div>
+        `;
+        document.getElementById("pLeaderboardList").innerHTML = stopCards || `<div class="muted">Žádné zastávky.</div>`;
+        document.getElementById("pDrinkersList").innerHTML = drinkerRows.length ? `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Účastník</th>
+                        ${crit.pocet ? `<th>Piv</th>` : ``}
+                        ${crit.wcVisits ? `<th>WC</th>` : ``}
+                        <th>Útrata</th>
+                    </tr>
+                </thead>
+                <tbody>${drinkerRows.map((d, i) => `
+                    <tr>
+                        <td>${i + 1}. ${escapeHtml(d.name)}</td>
+                        ${crit.pocet ? `<td><b>${d.beers}</b></td>` : ``}
+                        ${crit.wcVisits ? `<td><b>${d.wcVisits}</b></td>` : ``}
+                        <td><b>${d.spend} Kč</b></td>
+                    </tr>
+                `).join("")}</tbody>
+            </table>
+        ` : `<div class="muted">Zatím žádní účastníci.</div>`;
+    }
+
+    function downloadFile(filename, content, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function exportSingleWalkExcelTable() {
+        const walk = state.walks[state.activeParticipantWalk];
+        if (!walk) return;
+
+        const crit = normalizeCriteria(walk.criteria);
+        const mode = walk.scoringMode || "int_10";
+        const meta = getScoringMeta(mode);
+        const approvedUsers = Object.values(walk.users || {}).filter(u => (u.status || "approved") === "approved");
+
+        const stopRowsHtml = (walk.stops || []).map((st, idx) => {
+            let scores = [], piva = [], ceny = [], beers = 0, spend = 0, wcVisits = 0, tapsters = [], foods = [], notes = [];
+            approvedUsers.forEach(u => {
+                const r = u.ratings && u.ratings[st.id];
+                if (!r) return;
+                [r.pivo, r.obsluha, r.prostredi, r.dojem, r.wc].forEach(v => { if (v !== null && v !== undefined && v !== "") scores.push(Number(v)); });
+                if (r.pivo !== null && r.pivo !== undefined && r.pivo !== "") piva.push(Number(r.pivo));
+                const price = (r.cena && Number(r.cena) > 0) ? Number(r.cena) : (st.beerPrice ? Number(st.beerPrice) : null);
+                if (price) ceny.push(price);
+                const b = Number(r.pocet || 0);
+                beers += b;
+                if (b > 0 && price) spend += b * price;
+                wcVisits += Number(r.wcVisits || 0);
+                if (r.tapster) tapsters.push(`${u.name}: ${r.tapster}`);
+                if (r.food) foods.push(`${u.name}: ${r.food}`);
+                if (r.note) notes.push(`${u.name}: ${r.note}`);
+            });
+            const overall = avgNums(scores);
+            const beerAvg = avgNums(piva);
+            const priceAvg = avgNums(ceny);
+
+            return `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td>${escapeHtml(st.name)}</td>
+                    <td>${escapeHtml(st.time || "")}</td>
+                    <td>${escapeHtml(st.addr || "")}</td>
+                    <td>${overall !== null ? overall.toFixed(1).replace(".", ",") : ""}</td>
+                    <td>${beerAvg !== null ? beerAvg.toFixed(1).replace(".", ",") : ""}</td>
+                    <td>${priceAvg !== null ? Math.round(priceAvg) : ""}</td>
+                    <td>${beers}</td>
+                    <td>${wcVisits}</td>
+                    <td>${Math.round(spend)}</td>
+                    <td>${escapeHtml(tapsters.join(" | "))}</td>
+                    <td>${escapeHtml(foods.join(" | "))}</td>
+                    <td>${escapeHtml(notes.join(" | "))}</td>
+                </tr>
+            `;
+        }).join("");
+
+        const drinkerRowsHtml = approvedUsers.map(u => {
+            let bSum = 0, sSum = 0, wcSum = 0;
+            Object.entries(u.ratings || {}).forEach(([sId, r]) => {
+                const st = (walk.stops || []).find(x => x.id === sId);
+                const beers = Number(r.pocet || 0);
+                const price = (r.cena && Number(r.cena) > 0) ? Number(r.cena) : (st && st.beerPrice ? Number(st.beerPrice) : 0);
+                bSum += beers;
+                if (beers > 0 && price > 0) sSum += beers * price;
+                wcSum += Number(r.wcVisits || 0);
+            });
+            return `
+                <tr>
+                    <td>${escapeHtml(u.name)}</td>
+                    <td>${bSum}</td>
+                    <td>${wcSum}</td>
+                    <td>${Math.round(sSum)}</td>
+                </tr>
+            `;
+        }).join("");
+
+        const detailRowsHtml = [];
+        (walk.stops || []).forEach((st, idx) => {
+            approvedUsers.forEach(u => {
+                const r = (u.ratings && u.ratings[st.id]) || {};
+                const beers = Number(r.pocet || 0);
+                const price = (r.cena && Number(r.cena) > 0) ? Number(r.cena) : (st.beerPrice ? Number(st.beerPrice) : 0);
+                const spend = beers > 0 && price > 0 ? beers * price : 0;
+                detailRowsHtml.push(`
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td>${escapeHtml(st.name)}</td>
+                        <td>${escapeHtml(u.name)}</td>
+                        <td>${crit.pivo ? (formatScoreValue(r.pivo, mode) ?? "") : "–"}</td>
+                        <td>${crit.obsluha ? (formatScoreValue(r.obsluha, mode) ?? "") : "–"}</td>
+                        <td>${crit.prostredi ? (formatScoreValue(r.prostredi, mode) ?? "") : "–"}</td>
+                        <td>${crit.dojem ? (formatScoreValue(r.dojem, mode) ?? "") : "–"}</td>
+                        <td>${crit.wc ? (formatScoreValue(r.wc, mode) ?? "") : "–"}</td>
+                        <td>${crit.wcVisits ? (r.wcVisits ?? 0) : "–"}</td>
+                        <td>${crit.tapster ? escapeHtml(r.tapster || "") : "–"}</td>
+                        <td>${crit.food ? escapeHtml(r.food || "") : "–"}</td>
+                        <td>${crit.cena ? (price || "") : "–"}</td>
+                        <td>${crit.pocet ? beers : "–"}</td>
+                        <td>${Math.round(spend)}</td>
+                        <td>${crit.note ? escapeHtml(r.note || "") : "–"}</td>
+                    </tr>
+                `);
+            });
+        });
+
+        const htmlTable = `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    table { border-collapse: collapse; margin-bottom: 20px; font-family: Arial, sans-serif; font-size: 11pt; }
+                    th, td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; }
+                    th { background: #fef3c7; font-weight: bold; }
+                    h2, h3 { font-family: Arial, sans-serif; }
+                </style>
+            </head>
+            <body>
+                <h2>Pivochůzky – ${escapeHtml(walk.title)} (${escapeHtml(walk.code)})</h2>
+                <p>Datum konání: ${escapeHtml(walk.eventDate ? formatCzDate(walk.eventDate) : "Neuvedeno")} | Bodování: ${escapeHtml(meta.label)} (max ${meta.max})</p>
+
+                <h3>1. Přehled zastávek</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Pořadí</th><th>Zastávka</th><th>Čas</th><th>Adresa</th><th>Celkem /${meta.max}</th>
+                            <th>Pivo /${meta.max}</th><th>Cena piva (Kč)</th><th>Piv celkem</th><th>Návštěv WC</th>
+                            <th>Útrata (Kč)</th><th>Výčepáci</th><th>Jídlo</th><th>Poznámky</th>
+                        </tr>
+                    </thead>
+                    <tbody>${stopRowsHtml}</tbody>
+                </table>
+
+                <h3>2. Pivaři a útrata</h3>
+                <table>
+                    <thead>
+                        <tr><th>Účastník</th><th>Počet piv</th><th>Návštěv WC</th><th>Útrata (Kč)</th></tr>
+                    </thead>
+                    <tbody>${drinkerRowsHtml}</tbody>
+                </table>
+
+                <h3>3. Detailní hodnocení po zastávkách a účastnících</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Pořadí</th><th>Zastávka</th><th>Účastník</th><th>Pivo</th><th>Obsluha</th>
+                            <th>Prostředí</th><th>Dojem</th><th>WC</th><th>Návštěv WC</th><th>Výčepák</th>
+                            <th>Jídlo</th><th>Cena (Kč)</th><th>Počet piv</th><th>Útrata (Kč)</th><th>Poznámka</th>
+                        </tr>
+                    </thead>
+                    <tbody>${detailRowsHtml.join("")}</tbody>
+                </table>
+            </body>
+            </html>
+        `;
+
+        downloadFile(`${walk.code.toLowerCase()}-prehled.xls`, "\uFEFF" + htmlTable, "application/vnd.ms-excel;charset=utf-8");
+        showToast(`Exportována tabulka pro Excel (${walk.code}).`);
+    }
+
+    function drawQrToCanvas(canvasId, payload) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        const size = canvas.width;
+        const cells = 25;
+        const cellSize = Math.floor(size / cells);
+        const offset = Math.floor((size - cells * cellSize) / 2);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, size, size);
+
+        const grid = Array.from({ length: cells }, () => Array(cells).fill(false));
+
+        function drawFinder(r0, c0) {
+            for (let r = 0; r < 7; r++) {
+                for (let c = 0; c < 7; c++) {
+                    const rr = r0 + r, cc = c0 + c;
+                    if (rr >= 0 && rr < cells && cc >= 0 && cc < cells) {
+                        const isBorder = r === 0 || r === 6 || c === 0 || c === 6;
+                        const isCenter = r >= 2 && r <= 4 && c >= 2 && c <= 4;
+                        grid[rr][cc] = isBorder || isCenter;
+                    }
+                }
+            }
+        }
+
+        drawFinder(0, 0);
+        drawFinder(0, cells - 7);
+        drawFinder(cells - 7, 0);
+
+        let hash = 2166136261;
+        for (let i = 0; i < payload.length; i++) {
+            hash ^= payload.charCodeAt(i);
+            hash = Math.imul(hash, 16777619);
+        }
+
+        for (let r = 0; r < cells; r++) {
+            for (let c = 0; c < cells; c++) {
+                if ((r < 8 && c < 8) || (r < 8 && c >= cells - 8) || (r >= cells - 8 && c < 8)) continue;
+                const charCode = payload.charCodeAt((r * cells + c) % payload.length);
+                grid[r][c] = (((hash >>> ((r + c) % 24)) ^ (charCode * (r + 3)) ^ (c * 7)) & 1) === 1;
+            }
+        }
+
+        ctx.fillStyle = "#111827";
+        for (let r = 0; r < cells; r++) {
+            for (let c = 0; c < cells; c++) {
+                if (grid[r][c]) {
+                    ctx.fillRect(offset + c * cellSize, offset + r * cellSize, cellSize, cellSize);
+                }
+            }
+        }
+    }
+
+    function escapeHtml(str) {
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+    function escapeAttr(str) {
+        return escapeHtml(str).replace(/'/g, "&#39;");
+    }
+    function escapeJs(str) {
+        return String(str).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+    }
+</script>
+</body>
+</html>
