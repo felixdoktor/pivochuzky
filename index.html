@@ -890,11 +890,15 @@
 
         <div class="card">
             <h2>👤 Správa účtu</h2>
-            <p class="muted">Uprav si své uživatelské jméno nebo změň heslo účtu.</p>
+            <p class="muted">Uprav si své uživatelské jméno, přezdívku nebo změň heslo účtu.</p>
 
             <div class="form-group">
                 <label>Uživatelské jméno *</label>
                 <input type="text" id="accEditUsername" placeholder="Nové uživatelské jméno">
+            </div>
+            <div class="form-group">
+                <label>Přezdívka (zobrazovaná v pochodech a výsledcích)</label>
+                <input type="text" id="accEditNickname" placeholder="např. Kuba (nech prázdné = použije se uživatelské jméno)">
             </div>
             <div class="form-group">
                 <label>Nové heslo (nech prázdné pro zachování současného)</label>
@@ -1322,6 +1326,7 @@
             : (acc.templates && typeof acc.templates === "object" ? Object.values(acc.templates) : []);
         return {
             ...acc,
+            nickname: acc.nickname ? String(acc.nickname) : "",
             templates: tpls.map(t => ({
                 ...t,
                 stops: Array.isArray(t.stops) ? t.stops : (t.stops && typeof t.stops === "object" ? Object.values(t.stops) : [])
@@ -1515,6 +1520,12 @@
         return name.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "_") || "uzivatel";
     }
 
+    function getAccountDisplayName(acc) {
+        if (!acc) return "";
+        const nick = (acc.nickname || "").trim();
+        return nick || acc.username || "";
+    }
+
     function generateWalkCode() {
         const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         const bytes = new Uint8Array(10);
@@ -1623,6 +1634,7 @@
             return;
         }
         const acc = state.accounts[state.loggedInAccount];
+        const displayName = getAccountDisplayName(acc);
         if (state.activeParticipantWalk && state.walks[state.activeParticipantWalk]) {
             const w = state.walks[state.activeParticipantWalk];
             const sm = getScoringMeta(w.scoringMode);
@@ -1631,14 +1643,14 @@
                 ? `<a class="route-link" href="${escapeAttr(w.routeUrl)}" target="_blank" rel="noopener">🗺️ Trasa</a>`
                 : "";
             sub.innerHTML = `
-                <span class="pill-info">Účet: <b>${escapeHtml(acc.username)}</b></span>
+                <span class="pill-info">Účet: <b>${escapeHtml(displayName)}</b></span>
                 <span class="pill-info">Pochod: <b>${escapeHtml(w.code)}</b></span>
                 <span class="pill-info">🎯 ${escapeHtml(sm.label)}</span>
                 ${dateHtml}
                 ${routeHtml}
             `;
         } else {
-            sub.innerHTML = `<span class="pill-info">Přihlášen jako: <b>${escapeHtml(acc.username)}</b></span>`;
+            sub.innerHTML = `<span class="pill-info">Přihlášen jako: <b>${escapeHtml(displayName)}</b></span>`;
         }
     }
 
@@ -1658,11 +1670,12 @@
         }
 
         const acc = state.accounts[state.loggedInAccount];
+        const displayName = getAccountDisplayName(acc);
         body.innerHTML = `
             <div class="menu-tile primary-tile">
                 <div class="menu-tile-title">
                     <span>👤 Detail účtu</span>
-                    <span class="code-tag">${escapeHtml(acc.username)}</span>
+                    <span class="code-tag">${escapeHtml(displayName)}</span>
                 </div>
                 <div class="muted" style="font-size:0.78rem;">Správa účtu, vlastních templatů hospod nebo odhlášení.</div>
                 <div style="display:flex; gap:6px;">
@@ -1743,7 +1756,7 @@
 
         if (authMode === "register") {
             if (state.accounts[key]) return alert("Tento účet už existuje. Přepni na Přihlásit se.");
-            const newAcc = { username: rawUser, password: pass, templates: [] };
+            const newAcc = { username: rawUser, nickname: "", password: pass, templates: [] };
             state.accounts[key] = newAcc;
             state.loggedInAccount = key;
             localStorage.setItem(SESSION_KEY, key);
@@ -1759,7 +1772,7 @@
             localStorage.setItem(SESSION_KEY, key);
             document.getElementById("authPassword").value = "";
             showHomeTiles();
-            showToast(`Přihlášen jako ${acc.username}.`);
+            showToast(`Přihlášen jako ${getAccountDisplayName(acc)}.`);
         }
     }
 
@@ -1787,6 +1800,7 @@
         document.getElementById("accountManageView").classList.remove("hidden");
         document.getElementById("topTitle").textContent = "⚙️ Správa účtu";
         document.getElementById("accEditUsername").value = acc.username;
+        document.getElementById("accEditNickname").value = acc.nickname || "";
         document.getElementById("accEditPassword").value = "";
         document.getElementById("accEditPasswordConfirm").value = "";
         document.getElementById("newTplName").value = "";
@@ -1800,6 +1814,7 @@
         if (!acc) return;
 
         const newUsername = document.getElementById("accEditUsername").value.trim();
+        const newNickname = document.getElementById("accEditNickname").value.trim();
         const newPass = document.getElementById("accEditPassword").value;
         const newPassConfirm = document.getElementById("accEditPasswordConfirm").value;
 
@@ -1816,6 +1831,8 @@
         }
 
         acc.username = newUsername;
+        acc.nickname = newNickname;
+        const displayName = getAccountDisplayName(acc);
 
         if (newKey !== oldKey) {
             state.accounts[newKey] = acc;
@@ -1831,7 +1848,7 @@
                     changed = true;
                 }
                 if (w.users && w.users[oldKey]) {
-                    w.users[newKey] = { ...w.users[oldKey], name: newUsername };
+                    w.users[newKey] = { ...w.users[oldKey], name: displayName };
                     delete w.users[oldKey];
                     changed = true;
                 }
@@ -1841,7 +1858,7 @@
             await syncAccountToFirebase(newKey);
             for (const w of Object.values(state.walks)) {
                 if (w.users && w.users[newKey]) {
-                    w.users[newKey].name = newUsername;
+                    w.users[newKey].name = displayName;
                     await syncWalkToFirebase(w.code);
                 }
             }
@@ -2257,7 +2274,8 @@
             const approved = countApprovedMembers(w);
             const isFull = Boolean(w.maxParticipants && approved >= Number(w.maxParticipants));
             const capText = w.maxParticipants ? `${approved}/${w.maxParticipants} míst` : `${approved} účastníků`;
-            const ownerName = (state.accounts[w.ownerKey] && state.accounts[w.ownerKey].username) || w.ownerKey;
+            const ownerAcc = state.accounts[w.ownerKey];
+            const ownerName = ownerAcc ? getAccountDisplayName(ownerAcc) : w.ownerKey;
             const sm = getScoringMeta(w.scoringMode);
 
             return `
@@ -2330,7 +2348,7 @@
 
         const status = (walk.requiresApproval && !isOwner) ? "pending" : "approved";
         walk.users[accKey] = {
-            name: acc.username,
+            name: getAccountDisplayName(acc),
             status,
             ratings: {}
         };
@@ -2422,7 +2440,7 @@
             criteria,
             stops: getStopsFromUserTemplate(accKey, templateId),
             users: {
-                [accKey]: { name: acc.username, status: "approved", ratings: {} }
+                [accKey]: { name: getAccountDisplayName(acc), status: "approved", ratings: {} }
             }
         };
         await syncWalkToFirebase(code);
@@ -2508,10 +2526,12 @@
         document.getElementById("adminMembersList").innerHTML = entries.map(([uKey, u]) => {
             const isOwner = uKey === walk.ownerKey;
             const isPending = u.status === "pending";
+            const acc = state.accounts[uKey];
+            const displayName = acc ? getAccountDisplayName(acc) : u.name;
             return `
                 <div class="member-row">
                     <div>
-                        <strong>${escapeHtml(u.name)}</strong>
+                        <strong>${escapeHtml(displayName)}</strong>
                         ${isOwner ? `<span class="code-tag">Organizátor</span>` : ""}
                         ${isPending
                             ? `<span class="status-chip pending">⏳ Čeká na schválení</span>`
@@ -2543,7 +2563,8 @@
     async function removeMember(uKey) {
         const walk = state.walks[adminWalkCode];
         if (!walk || uKey === walk.ownerKey) return;
-        const memberName = walk.users[uKey]?.name || uKey;
+        const acc = state.accounts[uKey];
+        const memberName = acc ? getAccountDisplayName(acc) : (walk.users[uKey]?.name || uKey);
         if (!confirm(`Opravdu chceš odstranit účastníka „${memberName}“ z tohoto pochodu?`)) return;
         delete walk.users[uKey];
         await syncWalkToFirebase(adminWalkCode);
@@ -3063,16 +3084,22 @@
         return valid.length ? valid.reduce((a, b) => a + Number(b), 0) / valid.length : null;
     }
 
+    function getWalkParticipantDisplayName(uKey, uObj) {
+        const acc = state.accounts[uKey];
+        if (acc) return getAccountDisplayName(acc);
+        return (uObj && uObj.name) || uKey;
+    }
+
     function renderParticipantResults() {
         const walk = state.walks[state.activeParticipantWalk];
         if (!walk) return;
         const crit = normalizeCriteria(walk.criteria);
         const mode = walk.scoringMode || "int_10";
         const meta = getScoringMeta(mode);
-        const users = Object.values(walk.users || {}).filter(u => (u.status || "approved") === "approved");
+        const userEntries = Object.entries(walk.users || {}).filter(([, u]) => (u.status || "approved") === "approved");
         let totalBeers = 0, totalSpend = 0, totalWcVisits = 0;
 
-        const drinkerRows = users.map(u => {
+        const drinkerRows = userEntries.map(([uKey, u]) => {
             let bSum = 0, sSum = 0, wcSum = 0;
             Object.entries(u.ratings || {}).forEach(([sId, r]) => {
                 const st = walk.stops.find(x => x.id === sId);
@@ -3085,14 +3112,15 @@
             totalBeers += bSum;
             totalSpend += sSum;
             totalWcVisits += wcSum;
-            return { name: u.name, beers: bSum, spend: Math.round(sSum), wcVisits: wcSum };
+            return { name: getWalkParticipantDisplayName(uKey, u), beers: bSum, spend: Math.round(sSum), wcVisits: wcSum };
         }).sort((a, b) => b.beers - a.beers);
 
         const stopCards = walk.stops.map(st => {
             let scores = [], piva = [], ceny = [], beers = 0, spend = 0, wcVisits = 0, tapsters = [], foods = [], notes = [];
-            users.forEach(u => {
+            userEntries.forEach(([uKey, u]) => {
                 const r = u.ratings && u.ratings[st.id];
                 if (!r) return;
+                const displayName = getWalkParticipantDisplayName(uKey, u);
                 [r.pivo, r.obsluha, r.prostredi, r.dojem, r.wc].forEach(v => { if (v !== null && v !== undefined && v !== "") scores.push(Number(v)); });
                 if (r.pivo !== null && r.pivo !== undefined && r.pivo !== "") piva.push(Number(r.pivo));
                 const price = (r.cena && Number(r.cena) > 0) ? Number(r.cena) : (st.beerPrice ? Number(st.beerPrice) : null);
@@ -3101,9 +3129,9 @@
                 beers += b;
                 if (b > 0 && price) spend += b * price;
                 wcVisits += Number(r.wcVisits || 0);
-                if (r.tapster) tapsters.push(`${escapeHtml(u.name)}: ${escapeHtml(r.tapster)}`);
-                if (r.food) foods.push(`${escapeHtml(u.name)}: ${escapeHtml(r.food)}`);
-                if (r.note) notes.push(`<b>${escapeHtml(u.name)}:</b> „${escapeHtml(r.note)}“`);
+                if (r.tapster) tapsters.push(`${escapeHtml(displayName)}: ${escapeHtml(r.tapster)}`);
+                if (r.food) foods.push(`${escapeHtml(displayName)}: ${escapeHtml(r.food)}`);
+                if (r.note) notes.push(`<b>${escapeHtml(displayName)}:</b> „${escapeHtml(r.note)}“`);
             });
             const overall = avgNums(scores);
             const beerAvg = avgNums(piva);
@@ -3138,7 +3166,7 @@
         }).join("");
 
         document.getElementById("pGlobalStats").innerHTML = `
-            <div class="stat-box"><div class="stat-val">${users.length}</div><div class="stat-lbl">Účastníků</div></div>
+            <div class="stat-box"><div class="stat-val">${userEntries.length}</div><div class="stat-lbl">Účastníků</div></div>
             <div class="stat-box"><div class="stat-val">${totalBeers}</div><div class="stat-lbl">Vypitých piv</div></div>
             <div class="stat-box"><div class="stat-val">${Math.round(totalSpend)} Kč</div><div class="stat-lbl">Útrata</div></div>
             <div class="stat-box"><div class="stat-val">${crit.wcVisits ? totalWcVisits : walk.stops.length}</div><div class="stat-lbl">${crit.wcVisits ? "Návštěv WC" : "Zastávek"}</div></div>
@@ -3185,13 +3213,14 @@
         const crit = normalizeCriteria(walk.criteria);
         const mode = walk.scoringMode || "int_10";
         const meta = getScoringMeta(mode);
-        const approvedUsers = Object.values(walk.users || {}).filter(u => (u.status || "approved") === "approved");
+        const approvedEntries = Object.entries(walk.users || {}).filter(([, u]) => (u.status || "approved") === "approved");
 
         const stopRowsHtml = (walk.stops || []).map((st, idx) => {
             let scores = [], piva = [], ceny = [], beers = 0, spend = 0, wcVisits = 0, tapsters = [], foods = [], notes = [];
-            approvedUsers.forEach(u => {
+            approvedEntries.forEach(([uKey, u]) => {
                 const r = u.ratings && u.ratings[st.id];
                 if (!r) return;
+                const displayName = getWalkParticipantDisplayName(uKey, u);
                 [r.pivo, r.obsluha, r.prostredi, r.dojem, r.wc].forEach(v => { if (v !== null && v !== undefined && v !== "") scores.push(Number(v)); });
                 if (r.pivo !== null && r.pivo !== undefined && r.pivo !== "") piva.push(Number(r.pivo));
                 const price = (r.cena && Number(r.cena) > 0) ? Number(r.cena) : (st.beerPrice ? Number(st.beerPrice) : null);
@@ -3200,9 +3229,9 @@
                 beers += b;
                 if (b > 0 && price) spend += b * price;
                 wcVisits += Number(r.wcVisits || 0);
-                if (r.tapster) tapsters.push(`${u.name}: ${r.tapster}`);
-                if (r.food) foods.push(`${u.name}: ${r.food}`);
-                if (r.note) notes.push(`${u.name}: ${r.note}`);
+                if (r.tapster) tapsters.push(`${displayName}: ${r.tapster}`);
+                if (r.food) foods.push(`${displayName}: ${r.food}`);
+                if (r.note) notes.push(`${displayName}: ${r.note}`);
             });
             const overall = avgNums(scores);
             const beerAvg = avgNums(piva);
@@ -3227,7 +3256,7 @@
             `;
         }).join("");
 
-        const drinkerRowsHtml = approvedUsers.map(u => {
+        const drinkerRowsHtml = approvedEntries.map(([uKey, u]) => {
             let bSum = 0, sSum = 0, wcSum = 0;
             Object.entries(u.ratings || {}).forEach(([sId, r]) => {
                 const st = (walk.stops || []).find(x => x.id === sId);
@@ -3239,7 +3268,7 @@
             });
             return `
                 <tr>
-                    <td>${escapeHtml(u.name)}</td>
+                    <td>${escapeHtml(getWalkParticipantDisplayName(uKey, u))}</td>
                     <td>${bSum}</td>
                     <td>${wcSum}</td>
                     <td>${Math.round(sSum)}</td>
@@ -3249,7 +3278,7 @@
 
         const detailRowsHtml = [];
         (walk.stops || []).forEach((st, idx) => {
-            approvedUsers.forEach(u => {
+            approvedEntries.forEach(([uKey, u]) => {
                 const r = (u.ratings && u.ratings[st.id]) || {};
                 const beers = Number(r.pocet || 0);
                 const price = (r.cena && Number(r.cena) > 0) ? Number(r.cena) : (st.beerPrice ? Number(st.beerPrice) : 0);
@@ -3258,7 +3287,7 @@
                     <tr>
                         <td>${idx + 1}</td>
                         <td>${escapeHtml(st.name)}</td>
-                        <td>${escapeHtml(u.name)}</td>
+                        <td>${escapeHtml(getWalkParticipantDisplayName(uKey, u))}</td>
                         <td>${crit.pivo ? (formatScoreValue(r.pivo, mode) ?? "") : "–"}</td>
                         <td>${crit.obsluha ? (formatScoreValue(r.obsluha, mode) ?? "") : "–"}</td>
                         <td>${crit.prostredi ? (formatScoreValue(r.prostredi, mode) ?? "") : "–"}</td>
