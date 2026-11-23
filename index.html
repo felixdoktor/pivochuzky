@@ -1274,6 +1274,8 @@
     let authMode = "login";
     let adminWalkCode = null;
     let editingStopId = null;
+    let editingTplId = null;
+    let editingTplStopKey = null;
     let pendingPublicCheckbox = null;
     let currentViewName = "auth";
     let isSyncing = false;
@@ -1399,6 +1401,21 @@
         await fbDelete(`accounts/${oldKey}`);
     }
 
+    function hasDraftInAccountTemplates() {
+        const wrap = document.getElementById("userTemplatesList");
+        if (!wrap) return false;
+        const active = document.activeElement;
+        if (active && wrap.contains(active) && (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) {
+            return true;
+        }
+        const inputs = [...wrap.querySelectorAll("input[type='text'], input[type='number'], input[type='url']")];
+        return inputs.some(inp => {
+            if (inp.id && inp.id.startsWith("tplEditName_")) return false;
+            if (inp.id && inp.id.startsWith("tplEdStop_")) return false;
+            return inp.value.trim() !== "";
+        });
+    }
+
     function refreshActiveView() {
         if (!state.loggedInAccount || !state.accounts[state.loggedInAccount]) {
             if (currentViewName !== "auth") showAuthScreen();
@@ -1408,7 +1425,9 @@
         if (currentViewName === "home") {
             renderHomeTilesContent();
         } else if (currentViewName === "account") {
-            renderUserTemplatesList();
+            if (!hasDraftInAccountTemplates() && !editingTplId && !editingTplStopKey) {
+                renderUserTemplatesList();
+            }
         } else if (currentViewName === "create") {
             populateCreateTemplateSelect();
         } else if (currentViewName === "participant" && state.activeParticipantWalk) {
@@ -1425,7 +1444,9 @@
                 return;
             }
             renderAdminMembers(state.walks[adminWalkCode]);
-            renderAdminStopsList(state.walks[adminWalkCode]);
+            if (!editingStopId) {
+                renderAdminStopsList(state.walks[adminWalkCode]);
+            }
         }
     }
 
@@ -1747,6 +1768,8 @@
         state.activeParticipantWalk = null;
         adminWalkCode = null;
         editingStopId = null;
+        editingTplId = null;
+        editingTplStopKey = null;
         localStorage.removeItem(SESSION_KEY);
         toggleDrawer(false);
         showAuthScreen();
@@ -1758,6 +1781,8 @@
         const acc = state.accounts[state.loggedInAccount];
         if (!Array.isArray(acc.templates)) acc.templates = [];
         currentViewName = "account";
+        editingTplId = null;
+        editingTplStopKey = null;
         hideAllScreens();
         document.getElementById("accountManageView").classList.remove("hidden");
         document.getElementById("topTitle").textContent = "⚙️ Správa účtu";
@@ -1845,6 +1870,25 @@
         showToast(`Template „${name}“ vytvořen.`);
     }
 
+    function toggleEditUserTemplateName(tplId) {
+        editingTplId = editingTplId === tplId ? null : tplId;
+        renderUserTemplatesList();
+    }
+
+    async function saveUserTemplateName(tplId) {
+        const accKey = state.loggedInAccount;
+        const tpl = getAccountTemplates(accKey).find(t => t.id === tplId);
+        if (!tpl) return;
+        const inp = document.getElementById(`tplEditName_${tplId}`);
+        const val = inp ? inp.value.trim() : "";
+        if (!val) return alert("Název templatu nesmí být prázdný.");
+        tpl.name = val;
+        editingTplId = null;
+        await syncAccountToFirebase(accKey);
+        renderUserTemplatesList();
+        showToast("Název templatu upraven.");
+    }
+
     async function deleteUserTemplate(tplId) {
         const accKey = state.loggedInAccount;
         const acc = state.accounts[accKey];
@@ -1853,6 +1897,7 @@
         if (!tpl) return;
         if (!confirm(`Smazat template „${tpl.name}“?`)) return;
         acc.templates = acc.templates.filter(t => t.id !== tplId);
+        if (editingTplId === tplId) editingTplId = null;
         await syncAccountToFirebase(accKey);
         renderUserTemplatesList();
         showToast("Template smazán.");
@@ -1882,6 +1927,38 @@
         showToast("Hospoda přidána do templatu.");
     }
 
+    function toggleEditTemplateStop(tplId, stopId) {
+        const key = `${tplId}::${stopId}`;
+        editingTplStopKey = editingTplStopKey === key ? null : key;
+        renderUserTemplatesList();
+    }
+
+    async function saveEditedTemplateStop(tplId, stopId) {
+        const accKey = state.loggedInAccount;
+        const tpl = getAccountTemplates(accKey).find(t => t.id === tplId);
+        if (!tpl) return;
+        const stop = (tpl.stops || []).find(s => s.id === stopId);
+        if (!stop) return;
+
+        const prefix = `tplEdStop_${tplId}_${stopId}`;
+        const name = document.getElementById(`${prefix}_name`).value.trim();
+        if (!name) return alert("Název zastávky nesmí být prázdný.");
+        const priceVal = document.getElementById(`${prefix}_price`).value;
+
+        stop.num = document.getElementById(`${prefix}_num`).value.trim();
+        stop.name = name;
+        stop.time = document.getElementById(`${prefix}_time`).value.trim();
+        stop.addr = document.getElementById(`${prefix}_addr`).value.trim();
+        stop.photoUrl = document.getElementById(`${prefix}_photo`).value.trim();
+        stop.beerPrice = priceVal !== "" ? Number(priceVal) : null;
+        stop.isTrain = document.getElementById(`${prefix}_train`).checked;
+
+        editingTplStopKey = null;
+        await syncAccountToFirebase(accKey);
+        renderUserTemplatesList();
+        showToast("Zastávka v templatu upravena.");
+    }
+
     async function moveStopInUserTemplate(tplId, index, direction) {
         const accKey = state.loggedInAccount;
         const tpl = getAccountTemplates(accKey).find(t => t.id === tplId);
@@ -1899,6 +1976,7 @@
         const tpl = getAccountTemplates(accKey).find(t => t.id === tplId);
         if (!tpl || !Array.isArray(tpl.stops)) return;
         tpl.stops = tpl.stops.filter(s => s.id !== stopId);
+        if (editingTplStopKey === `${tplId}::${stopId}`) editingTplStopKey = null;
         await syncAccountToFirebase(accKey);
         renderUserTemplatesList();
     }
@@ -1916,23 +1994,63 @@
 
         container.innerHTML = templates.map(tpl => {
             const stops = Array.isArray(tpl.stops) ? tpl.stops : [];
+            const isRenaming = editingTplId === tpl.id;
             const stopsHtml = stops.length
-                ? stops.map((s, idx) => `
-                    <div class="template-stop-row">
-                        <div>
-                            <strong>${s.num ? escapeHtml(s.num) + " " : (idx + 1) + ". "}${escapeHtml(s.name)}</strong>
-                            ${s.time ? `<span class="stop-time">${escapeHtml(s.time)}</span>` : ""}
-                            ${s.beerPrice ? `<span class="muted">(${s.beerPrice} Kč)</span>` : ""}
-                            ${s.isTrain ? `<span class="muted">[Přesun]</span>` : ""}
-                            ${s.addr ? `<span class="muted">• ${escapeHtml(s.addr)}</span>` : ""}
+                ? stops.map((s, idx) => {
+                    const isStopEditing = editingTplStopKey === `${tpl.id}::${s.id}`;
+                    const edPrefix = `tplEdStop_${tpl.id}_${s.id}`;
+                    return `
+                        <div class="template-stop-row">
+                            <div style="flex:1; min-width:0;">
+                                <strong>${s.num ? escapeHtml(s.num) + " " : (idx + 1) + ". "}${escapeHtml(s.name)}</strong>
+                                ${s.time ? `<span class="stop-time">${escapeHtml(s.time)}</span>` : ""}
+                                ${s.beerPrice ? `<span class="muted">(${s.beerPrice} Kč)</span>` : ""}
+                                ${s.isTrain ? `<span class="muted">[Přesun]</span>` : ""}
+                                ${s.addr ? `<span class="muted">• ${escapeHtml(s.addr)}</span>` : ""}
+                            </div>
+                            <div style="display:flex; gap:4px;">
+                                <button class="btn btn-xs btn-secondary" ${idx === 0 ? "disabled" : ""} onclick="moveStopInUserTemplate('${escapeJs(tpl.id)}', ${idx}, -1)" title="Posunout nahoru">↑</button>
+                                <button class="btn btn-xs btn-secondary" ${idx === stops.length - 1 ? "disabled" : ""} onclick="moveStopInUserTemplate('${escapeJs(tpl.id)}', ${idx}, 1)" title="Posunout dolů">↓</button>
+                                <button class="btn btn-xs btn-secondary" onclick="toggleEditTemplateStop('${escapeJs(tpl.id)}', '${escapeJs(s.id)}')">${isStopEditing ? "Zavřít" : "Upravit"}</button>
+                                <button class="btn btn-xs btn-secondary" onclick="removeStopFromUserTemplate('${escapeJs(tpl.id)}', '${escapeJs(s.id)}')">Smazat</button>
+                            </div>
+                            ${isStopEditing ? `
+                                <div style="width:100%; margin-top:8px; padding-top:8px; border-top:1px dashed var(--border);">
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label>Číslo</label>
+                                            <input type="text" id="${edPrefix}_num" value="${escapeAttr(s.num || "")}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Název *</label>
+                                            <input type="text" id="${edPrefix}_name" value="${escapeAttr(s.name || "")}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Čas</label>
+                                            <input type="text" id="${edPrefix}_time" value="${escapeAttr(s.time || "")}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Cena piva (Kč)</label>
+                                            <input type="number" id="${edPrefix}_price" value="${s.beerPrice ?? ""}">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Adresa / popis</label>
+                                        <input type="text" id="${edPrefix}_addr" value="${escapeAttr(s.addr || "")}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>URL fotky</label>
+                                        <input type="url" id="${edPrefix}_photo" value="${escapeAttr(s.photoUrl || "")}">
+                                    </div>
+                                    <label style="display:flex; align-items:center; gap:8px; text-transform:none; margin-bottom:8px; color:var(--text);">
+                                        <input type="checkbox" id="${edPrefix}_train" style="width:auto;" ${s.isTrain ? "checked" : ""}> Cesta vlakem / přesun
+                                    </label>
+                                    <button class="btn btn-xs" onclick="saveEditedTemplateStop('${escapeJs(tpl.id)}', '${escapeJs(s.id)}')">Uložit zastávku</button>
+                                </div>
+                            ` : ""}
                         </div>
-                        <div style="display:flex; gap:4px;">
-                            <button class="btn btn-xs btn-secondary" ${idx === 0 ? "disabled" : ""} onclick="moveStopInUserTemplate('${escapeJs(tpl.id)}', ${idx}, -1)" title="Posunout nahoru">↑</button>
-                            <button class="btn btn-xs btn-secondary" ${idx === stops.length - 1 ? "disabled" : ""} onclick="moveStopInUserTemplate('${escapeJs(tpl.id)}', ${idx}, 1)" title="Posunout dolů">↓</button>
-                            <button class="btn btn-xs btn-secondary" onclick="removeStopFromUserTemplate('${escapeJs(tpl.id)}', '${escapeJs(s.id)}')">Smazat</button>
-                        </div>
-                    </div>
-                `).join("")
+                    `;
+                }).join("")
                 : `<div class="muted" style="font-size:0.8rem; margin-top:6px;">V tomto templatu zatím nejsou žádné hospody.</div>`;
 
             return `
@@ -1942,8 +2060,18 @@
                             <strong>📋 ${escapeHtml(tpl.name)}</strong>
                             <span class="muted" style="font-size:0.78rem;">(${stops.length} zastávek)</span>
                         </div>
-                        <button class="btn btn-xs btn-secondary" onclick="deleteUserTemplate('${escapeJs(tpl.id)}')">Smazat template</button>
+                        <div style="display:flex; gap:4px;">
+                            <button class="btn btn-xs btn-secondary" onclick="toggleEditUserTemplateName('${escapeJs(tpl.id)}')">${isRenaming ? "Zavřít" : "Přejmenovat"}</button>
+                            <button class="btn btn-xs btn-secondary" onclick="deleteUserTemplate('${escapeJs(tpl.id)}')">Smazat template</button>
+                        </div>
                     </div>
+
+                    ${isRenaming ? `
+                        <div style="margin-top:8px; display:flex; gap:6px; align-items:center;">
+                            <input type="text" id="tplEditName_${escapeAttr(tpl.id)}" value="${escapeAttr(tpl.name)}" style="flex:1;">
+                            <button class="btn btn-xs" onclick="saveUserTemplateName('${escapeJs(tpl.id)}')">Uložit</button>
+                        </div>
+                    ` : ""}
 
                     ${stopsHtml}
 
@@ -2005,6 +2133,8 @@
         state.activeParticipantWalk = null;
         adminWalkCode = null;
         editingStopId = null;
+        editingTplId = null;
+        editingTplStopKey = null;
 
         hideAllScreens();
         document.getElementById("homeTilesView").classList.remove("hidden");
